@@ -397,31 +397,25 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 		//printf("gl_shtex_init_d3d11_tex: failed to create texture video ");
 		return false;
 	}
-	/*if (!out_gl_capture_ptr)
-	{
-		out_gl_capture_ptr = fopen(gl_capture_file_name, "wb+");
-	}
-
-	fprintf(out_gl_capture_ptr, "[%s][%d][gl_shtex_init_d3d11_tex  failed to create texture video]\n", __FUNCTION__, __LINE__);
-	fflush(out_gl_capture_ptr);*/
+	
 
 	return true;
 }
 
 static inline bool gl_shtex_init_gl_tex(void)
 {
-	 
+	 //1. 把D3D11的资源转换为OpenGL的资源
 	data.gl_device = jimglDXOpenDeviceNV(data.d3d11_device);
 	if (!data.gl_device) {
 		printf("gl_shtex_init_gl_tex: failed to open device");
 		return false;
 	}
-
+	// 2. 得到OpenGL的纹理信息
 	glGenTextures(1, &data.texture);
 	if (gl_error("gl_shtex_init_gl_tex", "failed to generate texture")) {
 		return false;
 	}
-
+	// 3. 把D3D11的纹理信息映射到OpenGL的纹理到到资源中去
 	data.gl_dxobj = jimglDXRegisterObjectNV(data.gl_device, data.d3d11_tex,
 						data.texture, GL_TEXTURE_2D,
 						WGL_ACCESS_WRITE_DISCARD_NV);
@@ -433,28 +427,61 @@ static inline bool gl_shtex_init_gl_tex(void)
 	return true;
 }
 
+/*
+
+创建FBO
+创建FBO的方式类似于创建VBO，使用glGenFramebuffers
+
+void glGenFramebuffers(
+	GLsizei n,
+	GLuint *ids);
+1
+2
+3
+n:创建的帧缓冲区对象的数量
+ids：保存创建帧缓冲区对象ID的数组或者变量
+其中，ID为0有特殊的含义，表示窗口系统提供的帧缓冲区（默认）
+FBO不在使用之后使用glDeleteFramebuffers删除该FBO
+
+创建FBO之后，在使用之前需要绑定它，使用glBindFramebuffers
+
+void glBindFramebuffer(GLenum target, GLuint id)
+1
+target:绑定的目标，该参数必须设置为 GL_FRAMEBUFFER
+id：由glGenFramebuffers创建的id
+ 
+*/
 static inline bool gl_init_fbo(void)
 {     
+	
 	glGenFramebuffers(1, &data.fbo);
 	return !gl_error("gl_init_fbo", "failed to initialize FBO");
 }
 
 static bool gl_shtex_init(HWND window)
 {
-	 
-	if (!gl_shtex_init_window()) {
+	 // 1. 这个窗口初始化 我没有看懂
+	if (!gl_shtex_init_window()) 
+	{
 		return false;
 	}
-	if (!gl_shtex_init_d3d11()) {
+	// 2. 创建设备 与交换链
+	if (!gl_shtex_init_d3d11()) 
+	{
 		return false;
 	}
-	if (!gl_shtex_init_d3d11_tex()) {
+	// 3. 创建Texture 结构
+	if (!gl_shtex_init_d3d11_tex()) 
+	{
 		return false;
 	}
-	if (!gl_shtex_init_gl_tex()) {
+	// 4. d3d11 的设备映射到OpenGL中去 
+	if (!gl_shtex_init_gl_tex()) 
+	{
 		return false;
 	}
-	if (!gl_init_fbo()) {
+	if (!gl_init_fbo()) 
+	{
 		return false;
 	}
 	 
@@ -490,7 +517,8 @@ static int gl_init(HDC hdc)
 	data.format = DXGI_FORMAT_B8G8R8A8_UNORM;
 	data.using_shtex = true;
 
-	if (data.using_shtex) {
+	if (data.using_shtex) 
+	{
 		success = gl_shtex_init(window);
 		if (!success) {
 			ret = INIT_SHTEX_FAILED;
@@ -512,29 +540,32 @@ static void gl_copy_backbuffer(GLuint dst)
 {
 	 
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, data.fbo);
-	if (gl_error("gl_copy_backbuffer", "failed to bind FBO")) {
+	if (gl_error("gl_copy_backbuffer", "failed to bind FBO")) 
+	{
 		return;
 	}
 
 	glBindTexture(GL_TEXTURE_2D, dst);
-	if (gl_error("gl_copy_backbuffer", "failed to bind texture")) {
+	if (gl_error("gl_copy_backbuffer", "failed to bind texture")) 
+	{
 		return;
 	}
 
 	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
 			       GL_TEXTURE_2D, dst, 0);
-	if (gl_error("gl_copy_backbuffer", "failed to set frame buffer")) {
+	if (gl_error("gl_copy_backbuffer", "failed to set frame buffer")) 
+	{
 		return;
 	}
 
 	glReadBuffer(GL_BACK);
 
 	/* darkest dungeon fix */
-	darkest_dungeon_fix = glGetError() == GL_INVALID_OPERATION /*&&
-			      _strcmpi(process_name, "Darkest.exe") == 0*/;
+	darkest_dungeon_fix = glGetError() == GL_INVALID_OPERATION  && _strcmpi(process_name, "Darkest.exe") == 0 ;
 
 	glDrawBuffer(GL_COLOR_ATTACHMENT0);
-	if (gl_error("gl_copy_backbuffer", "failed to set draw buffer")) {
+	if (gl_error("gl_copy_backbuffer", "failed to set draw buffer")) 
+	{
 		return;
 	}
 
@@ -543,7 +574,9 @@ static void gl_copy_backbuffer(GLuint dst)
 	gl_error("gl_copy_backbuffer", "failed to blit");
 }
  
-
+/*
+*图片的翻转 的算法 
+*/
 static void flipImageVertical(unsigned char *top, unsigned char *bottom,
 			      unsigned int rowSize, unsigned int rowStep)
 {
@@ -566,7 +599,7 @@ static void gl_shtex_capture(void)
 	 
 	GLint last_fbo;
 	GLint last_tex;
-
+	// 1. 加锁 GPU的内存
 	jimglDXLockObjectsNV(data.gl_device, 1, &data.gl_dxobj);
 
 	glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &last_fbo);
@@ -587,6 +620,7 @@ static void gl_shtex_capture(void)
 	
 	jimglDXUnlockObjectsNV(data.gl_device, 1, &data.gl_dxobj);
 
+	
 	IDXGISwapChain_Present(data.dxgi_swap, 0, 0);
 
 	/*if (!out_gl_capture_ptr)
@@ -644,8 +678,7 @@ static void gl_shtex_capture(void)
 		// filp
 		UINT rgba_size = data.cx * data.cy * 4;
 
-		unsigned char *top =
-			(unsigned char *)mapd.pData + (data.cx * 4);
+		unsigned char *top = (unsigned char *)mapd.pData + (data.cx * 4);
 
 		unsigned char *bottom = top + (data.cy - 1) * (data.cx * 4);
 
@@ -698,9 +731,8 @@ static void gl_capture(HDC hdc)
 		capture_init = true;
 		if (gl_init(hdc) == INIT_SHTEX_FAILED) 
 		{
-			 
-			data.shmem_fallback = true;
-			gl_init(hdc);
+			 // error info 
+			return;
 		}
 	}
 	 
