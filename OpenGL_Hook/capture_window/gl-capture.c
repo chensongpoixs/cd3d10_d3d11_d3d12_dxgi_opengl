@@ -46,7 +46,8 @@ typedef uint8_t bool;
 static bool darkest_dungeon_fix = false;
 static bool functions_initialized = false;
 static FILE* out_gl_capture_ptr = NULL;
-//static const char* gl_capture_file_name = "opengl_capture.log";
+
+
 struct gl_data {
 	HDC hdc;
 	uint32_t cx;
@@ -72,13 +73,14 @@ struct gl_data {
 		};
 	
 		DWORD write_tick_count;
+		bool capture_init;
 };
 
 static HMODULE gl = NULL;
 static bool nv_capture_available = false;
 static struct gl_data data = {0 };
 __declspec(thread) static int swap_recurse;
-
+//static int read_cpu = 0;
 static inline bool gl_error(const char *func, const char *str)
 {
 	 
@@ -124,6 +126,7 @@ static void gl_free(void)
 	{
 		glDeleteFramebuffers(1, &data.fbo);
 	}
+	data.capture_init = false;
 
 	gl_error("gl_free", "GL error occurred on free");
 
@@ -152,6 +155,205 @@ static inline void *get_proc(const char *name)
 		func = base_get_proc(name);
 
 	return func;
+}
+
+
+
+void* get_d3d11_device_context(void* cur_d3d11)
+{
+	ID3D11DeviceContext* d3d11_context_ptr = NULL;
+	ID3D11Device_GetImmediateContext((ID3D11Device*)cur_d3d11,  &d3d11_context_ptr);
+	return d3d11_context_ptr;
+}
+
+bool hook_captuer_ok(void )
+{
+	if (data.write_tick_count == 0 || !data.handle)
+	{
+		return false;
+	}
+	return true;
+}
+
+HANDLE get_shared()
+{
+	return data.handle;
+}
+
+/*
+*图片的翻转 的算法
+*/
+static  void flipImageVertical(unsigned char* top, unsigned char* bottom,
+	unsigned int rowSize, unsigned int rowStep)
+{
+	while (top < bottom)
+	{
+		unsigned char* t = top;
+		unsigned char* b = bottom;
+		for (unsigned int i = 0; i < rowSize; ++i, ++t, ++b)
+		{
+			unsigned char temp = *t;
+			*t = *b;
+			*b = temp;
+		}
+		top += rowStep;
+		bottom -= rowStep;
+	}
+}
+void send_video_data(ID3D11Device* cur_d3d11, ID3D11Texture2D* cur_d3d11_texture)
+{
+	static ID3D11Texture2D* cur_d3d11_texture_read = NULL;
+	if (!cur_d3d11_texture_read)
+	{
+		D3D11_TEXTURE2D_DESC bufferTextureDesc = { 0 };
+		bufferTextureDesc.Width = data.cx;
+		bufferTextureDesc.Height = data.cy;
+		bufferTextureDesc.MipLevels = 1;
+		bufferTextureDesc.ArraySize = 1;
+		//	bufferTextureDesc.Format = DXGI_FORMAT_NV12;
+		bufferTextureDesc.SampleDesc.Count = 1;
+		//bufferTextureDesc.Usage = D3D11_USAGE_DEFAULT;
+		//bufferTextureDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+		//bufferTextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		HRESULT hr;
+		/*hr = ID3D11Device_GetDesc(data.d3d11_tex, &bufferTextureDesc);
+		if (FAILED(hr))
+		{
+			fprintf(out_gl_capture_ptr, "[%s][%d][ERROR]\n", __FUNCTION__,
+				__LINE__);
+			fflush(out_gl_capture_ptr);
+			return;
+		}*/
+		bufferTextureDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+		bufferTextureDesc.BindFlags = 0;
+		bufferTextureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		bufferTextureDesc.MiscFlags = 0;
+		bufferTextureDesc.Usage = D3D11_USAGE_STAGING;
+		{
+			SYSTEMTIME t1;
+			GetSystemTime(&t1);
+			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+		}
+
+		//ID3D11Texture2D *d3d11_temp_texture2d;
+
+		hr = ID3D11Device_CreateTexture2D(cur_d3d11, &bufferTextureDesc, NULL, &cur_d3d11_texture_read);
+		if (FAILED(hr))
+		{
+			/*fprintf(out_gl_capture_ptr, "[%s][%d][ERROR]\n",
+				__FUNCTION__, __LINE__);
+			fflush(out_gl_capture_ptr);*/
+			ERROR_EX_LOG("");
+			return;
+		}
+	}
+	ID3D11DeviceContext* d3d11_context_ptr = get_d3d11_device_context(cur_d3d11);
+	{
+		SYSTEMTIME t1;
+		GetSystemTime(&t1);
+		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+	}
+	if (!d3d11_context_ptr)
+	{
+		// error info 
+		ERROR_EX_LOG("");
+		return;
+	}
+
+	
+	 
+	{
+		
+		
+		{
+			SYSTEMTIME t1;
+			GetSystemTime(&t1);
+			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+		}
+		ID3D11DeviceContext_CopyResource(
+			d3d11_context_ptr,
+			(ID3D11Resource*)cur_d3d11_texture_read,
+			(ID3D11Resource*)cur_d3d11_texture);
+		{
+			/*fprintf(out_gl_capture_ptr, "[%s][%d][ID3D11DeviceContext_CopyResource]\n",
+				__FUNCTION__, __LINE__);
+			fflush(out_gl_capture_ptr);*/
+			//return;
+			 /* if (!out_gl_capture_ptr)
+			  {
+				  out_gl_capture_ptr = fopen(gl_capture_file_name, "wb+");
+			  }
+
+			  fprintf(out_gl_capture_ptr, "[%s][%d][ID3D11DeviceContext_CopyResource]\n", __FUNCTION__, __LINE__);
+			  fflush(out_gl_capture_ptr);*/
+		}
+		{
+			SYSTEMTIME t1;
+			GetSystemTime(&t1);
+			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+		}
+		HRESULT hr;
+		D3D11_MAPPED_SUBRESOURCE mapd;
+		UINT subResource = 0;
+		//D3D11CalcSubresource(0, 0, 1);
+		hr = ID3D11DeviceContext_Map(d3d11_context_ptr,
+			(ID3D11Resource*)cur_d3d11_texture_read,
+			subResource, D3D11_MAP_READ, 0,
+			&mapd);
+		if (FAILED(hr))
+		{
+			/*fprintf(out_gl_capture_ptr, "[%s][%d][ID3D11DeviceContext_Map][ERROR]\n", __FUNCTION__, __LINE__);
+			fflush(out_gl_capture_ptr);*/
+			return;
+		}
+		/*fprintf(out_gl_capture_ptr, "[%s][%d][ID3D11DeviceContext_Map]\n", __FUNCTION__, __LINE__);
+		fflush(out_gl_capture_ptr);*/
+		{
+			SYSTEMTIME t1;
+			GetSystemTime(&t1);
+			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+		}
+		// filp
+		UINT rgba_size = data.cx * data.cy * 4;
+
+		unsigned char* top = (unsigned char*)mapd.pData + (data.cx * 4);
+
+		unsigned char* bottom = top + (data.cy - 1) * (data.cx * 4);
+		//unsigned char* top, unsigned char* bottom,
+		//unsigned int rowSize, unsigned int rowStep
+		//
+		{
+			SYSTEMTIME t1;
+			GetSystemTime(&t1);
+			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+		}
+		flipImageVertical(top, bottom, (unsigned int)(data.cx * 4), (unsigned int)(data.cx * 4));
+		
+		{
+			SYSTEMTIME t1;
+			GetSystemTime(&t1);
+			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+		}
+		 
+		c_cpp_rtc_video(mapd.pData, data.cx, data.cy);
+		{
+			SYSTEMTIME t1;
+			GetSystemTime(&t1);
+			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+		}
+		ID3D11DeviceContext_Unmap(d3d11_context_ptr,
+			(ID3D11Resource*)cur_d3d11_texture_read,
+			subResource);
+
+		{
+			SYSTEMTIME t1;
+			GetSystemTime(&t1);
+			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+		}
+		 
+	}
+	
+
 }
 
 static void init_nv_functions(void)
@@ -349,7 +551,7 @@ static inline bool gl_shtex_init_d3d11(void)
 
 static inline bool gl_shtex_init_d3d11_tex(void)
 {
-	 
+	IDXGIResource* dxgi_res;
 	HRESULT hr;
 
 	D3D11_TEXTURE2D_DESC desc = {0};
@@ -370,38 +572,137 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 		return false;
 	}
 	//////////////////////////////////////////////////////////////////////
-	D3D11_TEXTURE2D_DESC bufferTextureDesc = { 0 };
-	bufferTextureDesc.Width = data.cx;
-	bufferTextureDesc.Height = data.cy;
-	bufferTextureDesc.MipLevels = 1;
-	bufferTextureDesc.ArraySize = 1;
-	 
-	bufferTextureDesc.SampleDesc.Count = 1;
-	bufferTextureDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-	bufferTextureDesc.BindFlags = 0;
-	bufferTextureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-	bufferTextureDesc.MiscFlags = 0;
-	bufferTextureDesc.Usage = D3D11_USAGE_STAGING;
-	 
-	hr = ID3D11Device_CreateTexture2D(data.d3d11_device, &bufferTextureDesc, NULL,
-		&data.d3d11_tex_video);
+	//D3D11_TEXTURE2D_DESC bufferTextureDesc = { 0 };
+	//bufferTextureDesc.Width = data.cx;
+	//bufferTextureDesc.Height = data.cy;
+	//bufferTextureDesc.MipLevels = 1;
+	//bufferTextureDesc.ArraySize = 1;
+	// 
+	//bufferTextureDesc.SampleDesc.Count = 1;
+	//bufferTextureDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	//bufferTextureDesc.BindFlags = 0;
+	//bufferTextureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	//bufferTextureDesc.MiscFlags = 0;
+	//bufferTextureDesc.Usage = D3D11_USAGE_STAGING;
+	// 
+	//hr = ID3D11Device_CreateTexture2D(data.d3d11_device, &bufferTextureDesc, NULL,
+	//	&data.d3d11_tex_video);
+	//if (FAILED(hr))
+	//{
+	//	/*if (!out_gl_capture_ptr)
+	//	{
+	//		out_gl_capture_ptr = fopen(gl_capture_file_name, "wb+");
+	//	}
+
+	//	fprintf(out_gl_capture_ptr, "[%s][%d][gl_shtex_init_d3d11_tex  failed to create texture video][ERROR]\n", __FUNCTION__, __LINE__);
+	//	fflush(out_gl_capture_ptr);*/
+	//	//printf("gl_shtex_init_d3d11_tex: failed to create texture video ");
+	//	return false;
+	//}
+	//
+	//////////////////////////////////////////////////////////////////////////////////////////
+	// 设置D3D11的同享模式
+	hr = ID3D11Device_QueryInterface(data.d3d11_tex, &GUID_IDXGIResource,
+		(void**)&dxgi_res);
 	if (FAILED(hr))
 	{
-		/*if (!out_gl_capture_ptr)
-		{
-			out_gl_capture_ptr = fopen(gl_capture_file_name, "wb+");
-		}
-
-		fprintf(out_gl_capture_ptr, "[%s][%d][gl_shtex_init_d3d11_tex  failed to create texture video][ERROR]\n", __FUNCTION__, __LINE__);
-		fflush(out_gl_capture_ptr);*/
-		//printf("gl_shtex_init_d3d11_tex: failed to create texture video ");
+		printf("gl_shtex_init_d3d11_tex: failed to get IDXGIResource");
 		return false;
 	}
-	
 
+	hr = IDXGIResource_GetSharedHandle(dxgi_res, &data.handle);
+	IDXGIResource_Release(dxgi_res);
+
+	if (FAILED(hr))
+	{
+		printf("gl_shtex_init_d3d11_tex: failed to get shared handle");
+		return false;
+	}
 	return true;
 }
+  void* gl_shared_init_d3d11(void)
+{
+	D3D_FEATURE_LEVEL level_used;
+	IDXGIFactory1* factory;
+	IDXGIAdapter* adapter;
+	HRESULT hr;
 
+	ID3D11Device* device;
+	HMODULE d3d11 = load_system_library("d3d11.dll");
+	if (!d3d11)
+	{
+		printf("gl_shared_init_d3d11: failed to load D3D11.dll: %d",
+			GetLastError());
+		return NULL;
+	}
+
+	HMODULE dxgi = load_system_library("dxgi.dll");
+	if (!dxgi)
+	{
+		printf("gl_shared_init_d3d11: failed to load DXGI.dll: %d",
+			GetLastError());
+		return NULL;
+	}
+
+	
+
+	create_dxgi_factory1_t create_factory =
+		(void*)GetProcAddress(dxgi, "CreateDXGIFactory1");
+	if (!create_factory)
+	{
+		printf("gl_shared_init_d3d11: failed to load CreateDXGIFactory1 "
+			"procedure: %d",
+			GetLastError());
+		return NULL;
+	}
+
+	PFN_D3D11_CREATE_DEVICE create =
+		(void*)GetProcAddress(d3d11, "D3D11CreateDevice");
+	if (!create)
+	{
+		printf("gl_shared_init_d3d11: failed to load "
+			"D3D11CreateDevice procedure: %d",
+			GetLastError());
+		return NULL;
+	}
+
+	hr = create_factory(&GUID_IDXGIFactory1, (void**)&factory);
+	if (FAILED(hr))
+	{
+		printf("gl_shared_init_d3d11: failed to create factory");
+		return NULL;
+	}
+
+	hr = IDXGIFactory1_EnumAdapters1(factory, 0,
+		(IDXGIAdapter1**)&adapter);
+	IDXGIFactory1_Release(factory);
+
+	if (FAILED(hr))
+	{
+		printf("gl_shared_init_d3d11: failed to create adapter");
+		return NULL;
+	}
+	UINT flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CPU_ACCESS_READ;
+#ifdef _DEBUG
+	flags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+	/*hr = create(adapter, D3D_DRIVER_TYPE_UNKNOWN, NULL, 0, feature_levels,
+		    sizeof(feature_levels) / sizeof(D3D_FEATURE_LEVEL),
+		    D3D11_SDK_VERSION, &desc, &data.dxgi_swap,
+		    &data.d3d11_device, &level_used, &data.d3d11_context);*/
+	hr = create(adapter, D3D_DRIVER_TYPE_UNKNOWN, NULL, flags, NULL, 0, D3D11_SDK_VERSION, &device, NULL, NULL);
+
+
+	IDXGIAdapter_Release(adapter);
+
+	if (FAILED(hr))
+	{
+		printf("gl_shared_init_d3d11: failed to create device");
+		return NULL;
+	}
+
+	return device; 
+}
 static inline bool gl_shtex_init_gl_tex(void)
 {
 	 //1. 把D3D11的资源转换为OpenGL的资源
@@ -574,125 +875,51 @@ static void gl_copy_backbuffer(GLuint dst)
 	gl_error("gl_copy_backbuffer", "failed to blit");
 }
  
-/*
-*图片的翻转 的算法 
-*/
-static void flipImageVertical(unsigned char *top, unsigned char *bottom,
-			      unsigned int rowSize, unsigned int rowStep)
-{
-	while (top < bottom) {
-		unsigned char *t = top;
-		unsigned char *b = bottom;
-		for (unsigned int i = 0; i < rowSize; ++i, ++t, ++b) {
-			unsigned char temp = *t;
-			*t = *b;
-			*b = temp;
-		}
-		top += rowStep;
-		bottom -= rowStep;
-	}
-}
 
 
-static void gl_shtex_capture(void)
-{
-	 
-	GLint last_fbo;
-	GLint last_tex;
-	// 1. 加锁 GPU的内存
-	jimglDXLockObjectsNV(data.gl_device, 1, &data.gl_dxobj);
-
-	glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &last_fbo);
-	if (gl_error("gl_shtex_capture", "failed to get last fbo")) {
-		return;
-	}
-
-	glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_tex);
-	if (gl_error("gl_shtex_capture", "failed to get last texture")) {
-		return;
-	}
-
-	gl_copy_backbuffer(data.texture);
-
-	glBindTexture(GL_TEXTURE_2D, last_tex);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, last_fbo);
-	 
-	
-	jimglDXUnlockObjectsNV(data.gl_device, 1, &data.gl_dxobj);
-
-	
-	IDXGISwapChain_Present(data.dxgi_swap, 0, 0);
-
-	/*if (!out_gl_capture_ptr)
-	{
-		out_gl_capture_ptr = fopen(gl_capture_file_name, "wb+");
-	}
-
-	fprintf(out_gl_capture_ptr, "[%s][%d]\n", __FUNCTION__, __LINE__);
-	fflush(out_gl_capture_ptr);*/
-	if (!data.d3d11_tex_video)
-	{
-		return;
-	}
-	/*if (!out_gl_capture_ptr)
-	{
-		out_gl_capture_ptr = fopen(gl_capture_file_name, "wb+");
-	}
-
-	fprintf(out_gl_capture_ptr, "[%s][%d]\n", __FUNCTION__, __LINE__);
-	fflush(out_gl_capture_ptr);*/
-	{
-		  ID3D11DeviceContext_CopyResource(
-			data.d3d11_context,
-			(ID3D11Resource *)data.d3d11_tex_video,
-						 (ID3D11Resource*)data.d3d11_tex);
-		 {
-			/*fprintf(out_gl_capture_ptr, "[%s][%d][ID3D11DeviceContext_CopyResource]\n",
-				__FUNCTION__, __LINE__);
-			fflush(out_gl_capture_ptr);*/
-			//return;
-			 /* if (!out_gl_capture_ptr)
-			  {
-				  out_gl_capture_ptr = fopen(gl_capture_file_name, "wb+");
-			  }
-
-			  fprintf(out_gl_capture_ptr, "[%s][%d][ID3D11DeviceContext_CopyResource]\n", __FUNCTION__, __LINE__);
-			  fflush(out_gl_capture_ptr);*/
-		}
-		HRESULT hr;
-		D3D11_MAPPED_SUBRESOURCE mapd;
-		UINT subResource = 0;
-		//D3D11CalcSubresource(0, 0, 1);
-		hr = ID3D11DeviceContext_Map(data.d3d11_context,
-			(ID3D11Resource*)data.d3d11_tex_video,
-					     subResource, D3D11_MAP_READ, 0,
-					     &mapd);
-		if (FAILED(hr)) {
-			/*fprintf(out_gl_capture_ptr, "[%s][%d][ID3D11DeviceContext_Map][ERROR]\n", __FUNCTION__, __LINE__);
-			fflush(out_gl_capture_ptr);*/
-			return;
-		}
-		/*fprintf(out_gl_capture_ptr, "[%s][%d][ID3D11DeviceContext_Map]\n", __FUNCTION__, __LINE__);
-		fflush(out_gl_capture_ptr);*/
-
-		// filp
-		UINT rgba_size = data.cx * data.cy * 4;
-
-		unsigned char *top = (unsigned char *)mapd.pData + (data.cx * 4);
-
-		unsigned char *bottom = top + (data.cy - 1) * (data.cx * 4);
-
-		flipImageVertical(top, bottom, (data.cx * 4), (data.cx * 4));
-
-		c_cpp_rtc_video(mapd.pData, data.cx, data.cy);
-		ID3D11DeviceContext_Unmap(data.d3d11_context,
-			(ID3D11Resource*)data.d3d11_tex_video,
-					  subResource);
-
-		
-	}
-}
  
+
+ static void gl_shtex_capture(void)
+ {
+
+	 GLint last_fbo;
+	 GLint last_tex;
+	 // 1. 加锁 GPU的内存
+	 jimglDXLockObjectsNV(data.gl_device, 1, &data.gl_dxobj);
+
+	 glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &last_fbo);
+	 if (gl_error("gl_shtex_capture", "failed to get last fbo"))
+	 {
+		 return;
+	 }
+
+	 glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_tex);
+	 if (gl_error("gl_shtex_capture", "failed to get last texture"))
+	 {
+		 return;
+	 }
+
+	 gl_copy_backbuffer(data.texture);
+
+	 glBindTexture(GL_TEXTURE_2D, last_tex);
+	 glBindFramebuffer(GL_DRAW_FRAMEBUFFER, last_fbo);
+
+
+	 jimglDXUnlockObjectsNV(data.gl_device, 1, &data.gl_dxobj);
+
+
+	 IDXGISwapChain_Present(data.dxgi_swap, 0, 0);
+	
+	 if (data.write_tick_count == 0)
+	 {
+
+		 c_set_send_video_callback(&g_send_video_callback);
+	 }
+	 data.write_tick_count = GetTickCount64();
+	 //++read_cpu;
+	 return;
+	
+ }
  
 static void gl_capture(HDC hdc)
 {
@@ -726,9 +953,9 @@ static void gl_capture(HDC hdc)
 	/*if (capture_should_stop()) {
 		gl_free();
 	}*/
-	static bool capture_init = false;
-	if (!capture_init) {
-		capture_init = true;
+	 
+	if (!data.capture_init) {
+		data.capture_init = true;
 		if (gl_init(hdc) == INIT_SHTEX_FAILED) 
 		{
 			 // error info 
@@ -748,10 +975,13 @@ static void gl_capture(HDC hdc)
 		fflush(out_gl_capture_ptr);*/
 		/* reset capture if resized */
 		get_window_size(hdc, &new_cx, &new_cy);
-		if (new_cx != data.cx || new_cy != data.cy) {
-			if (new_cx != 0 && new_cy != 0) {
+		if (new_cx != data.cx || new_cy != data.cy) 
+		{
+			if (new_cx != 0 && new_cy != 0) 
+			{
 				gl_free();
 			}
+			//gl_free();
 			return;
 		}
 
@@ -778,15 +1008,15 @@ static inline void gl_swap_begin(HDC hdc)
 	fflush(out_gl_capture_ptr);*/
 	const bool first = swap_recurse == 0;
 	++swap_recurse;
-	if (data.write_tick_count > GetTickCount64())
-	{
-		return;
-	}
-	data.write_tick_count = GetTickCount64() + FRAME_SUM;
-	if (first /*&& !global_hook_info->capture_overlay*/)
-	{
-		gl_capture(hdc);
-	}
+	//if (data.write_tick_count > GetTickCount64())
+	//{
+	//	return;
+	//}
+	//data.write_tick_count = GetTickCount64() + FRAME_SUM;
+	//if (first /*&& !global_hook_info->capture_overlay*/)
+	//{
+	//	gl_capture(hdc);
+	//}
 }
 
 static inline void gl_swap_end(HDC hdc)
@@ -799,10 +1029,10 @@ static inline void gl_swap_end(HDC hdc)
 	fflush(out_gl_capture_ptr);*/
 	--swap_recurse;
 	const bool first = swap_recurse == 0;
-	if (data.write_tick_count > GetTickCount64()) {
+	/*if (data.write_tick_count > GetTickCount64()) {
 		return;
 	}
-	data.write_tick_count = GetTickCount64() + FRAME_SUM;
+	data.write_tick_count = GetTickCount64() + FRAME_SUM;*/
 	if (first /*&& global_hook_info->capture_overlay*/)
 	{
 		gl_capture(hdc);

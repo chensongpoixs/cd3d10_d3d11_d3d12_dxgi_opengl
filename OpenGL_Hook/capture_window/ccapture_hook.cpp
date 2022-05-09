@@ -1,4 +1,12 @@
 
+// 这个宏是非常重要的哈 否则会编译不过去的哈 ^_^
+//#define COBJMACROS
+#include <dxgi.h>
+#include <d3d11.h>
+
+#include <windows.h>
+#include <psapi.h>
+#include <inttypes.h>
 
 #include <iostream>
 #include <windows.h>
@@ -66,7 +74,7 @@ static DWORD WINAPI dummy_window_thread(LPVOID *unused)
 	wc.lpfnWndProc = (WNDPROC)DefWindowProc;
 	wc.lpszClassName = dummy_window_class;
 
-	if (!RegisterClass( &wc)) {
+	if (!RegisterClass(&wc)) {
 		printf("Failed to create temp D3D window class: %lu",
 			GetLastError());
 		return 0;
@@ -88,7 +96,38 @@ static DWORD WINAPI dummy_window_thread(LPVOID *unused)
 	(void)unused;
 	return 0;
 }
+static FILE* out_file_log_ptr = NULL;
+static inline void SHOW(const char* format, va_list args)
+{
+	if (!out_file_log_ptr)
+	{
+		out_file_log_ptr = ::fopen(g_ccapture_hook_file_name, "wb+");
+	}
+	if (!out_file_log_ptr)
+	{
+		return;
+	}
+	char message[1024] = {0};
 
+	int num = _vsprintf_p(message, 1024, format, args);
+	if (num > 0)
+	{
+		::fprintf(out_file_log_ptr, "%s\n", message);
+		::fflush(out_file_log_ptr);
+	}
+}
+void LOG(const char* format, ...)
+{
+	
+	
+		va_list args;
+		va_start(args, format);
+
+		SHOW(format, args);
+		va_end(args);
+	
+}
+ 
 
 static inline void init_dummy_window_thread(void)
 {
@@ -123,11 +162,12 @@ static inline void log_current_process(void)
 	printf("(half life scientist) everything..  seems to be in order");
 }
 
-
+ 
 static inline bool init_hook(HANDLE thread_handle)
 { 
 	if (c_init())
 	{
+		
 		c_startup();
 	}
 	init_dummy_window_thread();
@@ -137,7 +177,109 @@ static inline bool init_hook(HANDLE thread_handle)
 }
 
 
+bool open_shared_d3d11_texture(ID3D11Device* device, uintptr_t handler, ID3D11Texture2D* d3d11_texture)
+{
+	HRESULT hr;
+	hr = device->OpenSharedResource((HANDLE)(uintptr_t)handler, __uuidof(ID3D11Texture2D), (void**)&d3d11_texture);
+	//ID3D11Device_OpenSharedResource();
+	if (FAILED(hr))
+	{
+		printf("open_shared_d3d11_texture: open shared handler  failed  !!!");
+		return false;
+	}
+	return true;
+}
 
+void g_send_video_callback()
+{
+	//DEBUG_EX_LOG("");
+	/*if (!data.d3d11_tex_video)
+	{
+		return;
+	}*/
+	{
+		SYSTEMTIME t1;
+		GetSystemTime(&t1);
+		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+	}
+	if (!hook_captuer_ok())
+	{
+		ERROR_EX_LOG("");
+		return;
+	}
+	static ID3D11Device* cur_d3d11_ptr = NULL;
+	static ID3D11Texture2D* cur_d3d11_texture_ptr = NULL;
+	static ID3D11Texture2D* cur_d3d11_texture_read_ptr = NULL;
+	static ID3D11DeviceContext* d3d11_context_ptr = NULL;
+	if (!cur_d3d11_ptr)
+	{
+		cur_d3d11_ptr = (ID3D11Device*)gl_shared_init_d3d11();;
+	}
+	if (!cur_d3d11_texture_ptr && cur_d3d11_ptr)
+	{
+		//cur_d3d11_ptr->OpenSharedResource();//This,hResource,ReturnedInterface,ppResource
+		// ID3D11Device * This,
+			/* [annotation] */
+		//_In_  HANDLE hResource,
+		//	/* [annotation] */
+		//	_In_  REFIID ReturnedInterface,
+		//	/* [annotation] */
+		//	_COM_Outptr_opt_  void** ppResource
+
+		//cur_d3d11_ptr->lpVtbl->OpenSharedResource(cur_d3d11_ptr, (HANDLE)(uintptr_t)data.handle, __uuidof(ID3D11Texture2D), (void**)&cur_d3d11_texture_ptr);
+		//if (!open_shared_d3d11_texture(cur_d3d11_ptr,  (uintptr_t)get_shared(), cur_d3d11_texture_ptr))
+		//{
+		//	ERROR_EX_LOG("");
+		//	// error info 
+		//	return;
+		//}
+		HRESULT hr;
+		hr = cur_d3d11_ptr->OpenSharedResource((HANDLE)(uintptr_t)get_shared(), __uuidof(ID3D11Texture2D), (void**)&cur_d3d11_texture_ptr);
+		//ID3D11Device_OpenSharedResource();
+		if (FAILED(hr))
+		{
+			ERROR_EX_LOG("open_shared_d3d11_texture: open shared handler  failed  !!!");
+			return ;
+		}
+
+	}
+	{
+		SYSTEMTIME t1;
+		GetSystemTime(&t1);
+		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+	}
+	if (!cur_d3d11_texture_ptr || !cur_d3d11_ptr  )
+	{
+		ERROR_EX_LOG("");
+		return;
+	}
+	{
+		SYSTEMTIME t1;
+		GetSystemTime(&t1);
+		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+	}
+	send_video_data(cur_d3d11_ptr, cur_d3d11_texture_ptr);
+	{
+		SYSTEMTIME t1;
+		GetSystemTime(&t1);
+		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+	}
+	//d3d11_context_ptr = get_d3d11_device_context(cur_d3d11_ptr);
+	//
+	//if (!d3d11_context_ptr)
+	//{
+	//	// error info 
+	//	return;
+	//}
+	/*if (!out_gl_capture_ptr)
+	{
+		out_gl_capture_ptr = fopen(gl_capture_file_name, "wb+");
+	}
+
+	fprintf(out_gl_capture_ptr, "[%s][%d]\n", __FUNCTION__, __LINE__);
+	fflush(out_gl_capture_ptr);*/
+	
+}
 static inline bool attempt_hook(void)
 {
 	
@@ -161,7 +303,7 @@ static inline bool attempt_hook(void)
 
 static inline void capture_loop(void)
 {
-	Sleep(4);;
+	//Sleep(4);;
 	while (!attempt_hook())
 	{
 		Sleep(40);
@@ -191,7 +333,13 @@ static DWORD WINAPI main_capture_thread(HANDLE thread_handle)
 	capture_loop();
 	return 0;
 }
-
+/// <summary>
+/// 动态库的入口
+/// </summary>
+/// <param name="hinst"></param>
+/// <param name="reason"></param>
+/// <param name="unused1"></param>
+/// <returns></returns>
 BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, LPVOID unused1)
 {
 	
