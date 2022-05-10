@@ -15,7 +15,7 @@
 #include "ccapture_hook.h"
 #include "gl-capture.h"
 #include "capture.h"
-
+#include <chrono>
 #include "C:\Work\cabroad_server\Server\Robot\ccloud_rendering_c.h"
 
 static HINSTANCE dll_inst = NULL;
@@ -197,68 +197,86 @@ void g_send_video_callback()
 	{
 		return;
 	}*/
+	static auto timestamp =
+		std::chrono::duration_cast<std::chrono::milliseconds>(
+			std::chrono::system_clock::now().time_since_epoch())
+		.count();
+	static size_t cnt = 0;
+
+	cnt++;
+	auto timestamp_curr = std::chrono::duration_cast<std::chrono::milliseconds>(
+		std::chrono::system_clock::now().time_since_epoch())
+		.count();
+	if (timestamp_curr - timestamp > 1000)
 	{
-		SYSTEMTIME t1;
-		GetSystemTime(&t1);
-		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+		 
+		{
+			SYSTEMTIME t1;
+			GetSystemTime(&t1);
+			DEBUG_EX_LOG("cur = %u, fps = %u", t1.wMilliseconds, cnt);
+		}
+		cnt = 0;
+		timestamp = timestamp_curr;
 	}
+	
 	if (!hook_captuer_ok())
 	{
 		ERROR_EX_LOG("");
 		return;
 	}
-	static ID3D11Device* cur_d3d11_ptr = NULL;
-	static ID3D11Texture2D* cur_d3d11_texture_ptr = NULL;
-	static ID3D11Texture2D* cur_d3d11_texture_read_ptr = NULL;
-	static ID3D11DeviceContext* d3d11_context_ptr = NULL;
-	if (!cur_d3d11_ptr)
-	{
-		cur_d3d11_ptr = (ID3D11Device*)gl_shared_init_d3d11();;
-	}
-	if (!cur_d3d11_texture_ptr && cur_d3d11_ptr)
-	{
-		//cur_d3d11_ptr->OpenSharedResource();//This,hResource,ReturnedInterface,ppResource
-		// ID3D11Device * This,
-			/* [annotation] */
-		//_In_  HANDLE hResource,
-		//	/* [annotation] */
-		//	_In_  REFIID ReturnedInterface,
-		//	/* [annotation] */
-		//	_COM_Outptr_opt_  void** ppResource
+	//static ID3D11Device* cur_d3d11_ptr = NULL;
+	//static ID3D11Texture2D* cur_d3d11_texture_ptr = NULL;
+	//static ID3D11Texture2D* cur_d3d11_texture_read_ptr = NULL;
+	//static ID3D11DeviceContext* d3d11_context_ptr = NULL;
+	//if (!cur_d3d11_ptr)
+	//{
+	//	cur_d3d11_ptr = (ID3D11Device*)gl_shared_init_d3d11();;
+	//}
+	//if (!cur_d3d11_texture_ptr && cur_d3d11_ptr)
+	//{
+	//	//cur_d3d11_ptr->OpenSharedResource();//This,hResource,ReturnedInterface,ppResource
+	//	// ID3D11Device * This,
+	//		/* [annotation] */
+	//	//_In_  HANDLE hResource,
+	//	//	/* [annotation] */
+	//	//	_In_  REFIID ReturnedInterface,
+	//	//	/* [annotation] */
+	//	//	_COM_Outptr_opt_  void** ppResource
 
-		//cur_d3d11_ptr->lpVtbl->OpenSharedResource(cur_d3d11_ptr, (HANDLE)(uintptr_t)data.handle, __uuidof(ID3D11Texture2D), (void**)&cur_d3d11_texture_ptr);
-		//if (!open_shared_d3d11_texture(cur_d3d11_ptr,  (uintptr_t)get_shared(), cur_d3d11_texture_ptr))
-		//{
-		//	ERROR_EX_LOG("");
-		//	// error info 
-		//	return;
-		//}
-		HRESULT hr;
-		hr = cur_d3d11_ptr->OpenSharedResource((HANDLE)(uintptr_t)get_shared(), __uuidof(ID3D11Texture2D), (void**)&cur_d3d11_texture_ptr);
-		//ID3D11Device_OpenSharedResource();
-		if (FAILED(hr))
-		{
-			ERROR_EX_LOG("open_shared_d3d11_texture: open shared handler  failed  !!!");
-			return ;
-		}
+	//	//cur_d3d11_ptr->lpVtbl->OpenSharedResource(cur_d3d11_ptr, (HANDLE)(uintptr_t)data.handle, __uuidof(ID3D11Texture2D), (void**)&cur_d3d11_texture_ptr);
+	//	//if (!open_shared_d3d11_texture(cur_d3d11_ptr,  (uintptr_t)get_shared(), cur_d3d11_texture_ptr))
+	//	//{
+	//	//	ERROR_EX_LOG("");
+	//	//	// error info 
+	//	//	return;
+	//	//}
+	//	HRESULT hr;
+	//	hr = cur_d3d11_ptr->OpenSharedResource((HANDLE)(uintptr_t)get_shared(), __uuidof(ID3D11Texture2D), (void**)&cur_d3d11_texture_ptr);
+	//	//ID3D11Device_OpenSharedResource();
+	//	if (FAILED(hr))
+	//	{
+	//		ERROR_EX_LOG("open_shared_d3d11_texture: open shared handler  failed  !!!");
+	//		return ;
+	//	}
 
-	}
-	{
-		SYSTEMTIME t1;
-		GetSystemTime(&t1);
-		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
-	}
-	if (!cur_d3d11_texture_ptr || !cur_d3d11_ptr  )
-	{
-		ERROR_EX_LOG("");
-		return;
-	}
-	{
-		SYSTEMTIME t1;
-		GetSystemTime(&t1);
-		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
-	}
-	send_video_data(cur_d3d11_ptr, cur_d3d11_texture_ptr);
+	//}
+	//{
+	//	SYSTEMTIME t1;
+	//	GetSystemTime(&t1);
+	//	DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+	//}
+	//if (!cur_d3d11_texture_ptr || !cur_d3d11_ptr  )
+	//{
+	//	ERROR_EX_LOG("");
+	//	return;
+	//}
+	//{
+	//	SYSTEMTIME t1;
+	//	GetSystemTime(&t1);
+	//	DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+	//}
+	send_video_data();
+	
 	{
 		SYSTEMTIME t1;
 		GetSystemTime(&t1);

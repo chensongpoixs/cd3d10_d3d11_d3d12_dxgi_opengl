@@ -76,17 +76,26 @@ struct gl_data {
 		bool capture_init;
 };
 
+
+
+struct gl_read_video
+{
+	int ready;
+	void* handler;
+};
 static HMODULE gl = NULL;
 static bool nv_capture_available = false;
 static struct gl_data data = {0 };
+static struct gl_read_video  gl_video_data = {0};
 __declspec(thread) static int swap_recurse;
 //static int read_cpu = 0;
 static inline bool gl_error(const char *func, const char *str)
 {
 	 
 	GLenum error = glGetError();
-	if (error != 0) {
-		printf("%s: %s: %lu", func, str, error);
+	if (error != 0) 
+	{
+		ERROR_EX_LOG("%s: %s: %lu", func, str, error);
 		return true;
 	}
 
@@ -175,187 +184,195 @@ bool hook_captuer_ok(void )
 	return true;
 }
 
-HANDLE get_shared()
+void * get_shared()
 {
-	return data.handle;
+	gl_video_data.handler = data.handle;
+	return &gl_video_data;
 }
 
 /*
 *图片的翻转 的算法
 */
-static  void flipImageVertical(unsigned char* top, unsigned char* bottom,
-	unsigned int rowSize, unsigned int rowStep)
-{
-	while (top < bottom)
-	{
-		unsigned char* t = top;
-		unsigned char* b = bottom;
-		for (unsigned int i = 0; i < rowSize; ++i, ++t, ++b)
-		{
-			unsigned char temp = *t;
-			*t = *b;
-			*b = temp;
-		}
-		top += rowStep;
-		bottom -= rowStep;
-	}
-}
-void send_video_data(ID3D11Device* cur_d3d11, ID3D11Texture2D* cur_d3d11_texture)
-{
-	static ID3D11Texture2D* cur_d3d11_texture_read = NULL;
-	if (!cur_d3d11_texture_read)
-	{
-		D3D11_TEXTURE2D_DESC bufferTextureDesc = { 0 };
-		bufferTextureDesc.Width = data.cx;
-		bufferTextureDesc.Height = data.cy;
-		bufferTextureDesc.MipLevels = 1;
-		bufferTextureDesc.ArraySize = 1;
-		//	bufferTextureDesc.Format = DXGI_FORMAT_NV12;
-		bufferTextureDesc.SampleDesc.Count = 1;
-		//bufferTextureDesc.Usage = D3D11_USAGE_DEFAULT;
-		//bufferTextureDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
-		//bufferTextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		HRESULT hr;
-		/*hr = ID3D11Device_GetDesc(data.d3d11_tex, &bufferTextureDesc);
-		if (FAILED(hr))
-		{
-			fprintf(out_gl_capture_ptr, "[%s][%d][ERROR]\n", __FUNCTION__,
-				__LINE__);
-			fflush(out_gl_capture_ptr);
-			return;
-		}*/
-		bufferTextureDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-		bufferTextureDesc.BindFlags = 0;
-		bufferTextureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-		bufferTextureDesc.MiscFlags = 0;
-		bufferTextureDesc.Usage = D3D11_USAGE_STAGING;
-		{
-			SYSTEMTIME t1;
-			GetSystemTime(&t1);
-			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
-		}
-
-		//ID3D11Texture2D *d3d11_temp_texture2d;
-
-		hr = ID3D11Device_CreateTexture2D(cur_d3d11, &bufferTextureDesc, NULL, &cur_d3d11_texture_read);
-		if (FAILED(hr))
-		{
-			/*fprintf(out_gl_capture_ptr, "[%s][%d][ERROR]\n",
-				__FUNCTION__, __LINE__);
-			fflush(out_gl_capture_ptr);*/
-			ERROR_EX_LOG("");
-			return;
-		}
-	}
-	ID3D11DeviceContext* d3d11_context_ptr = get_d3d11_device_context(cur_d3d11);
-	{
-		SYSTEMTIME t1;
-		GetSystemTime(&t1);
-		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
-	}
-	if (!d3d11_context_ptr)
-	{
-		// error info 
-		ERROR_EX_LOG("");
-		return;
-	}
+//static  void flipImageVertical(unsigned char* top, unsigned char* bottom,
+//	unsigned int rowSize, unsigned int rowStep)
+//{
+//	while (top < bottom)
+//	{
+//		unsigned char* t = top;
+//		unsigned char* b = bottom;
+//		for (unsigned int i = 0; i < rowSize; ++i, ++t, ++b)
+//		{
+//			unsigned char temp = *t;
+//			*t = *b;
+//			*b = temp;
+//		}
+//		top += rowStep;
+//		bottom -= rowStep;
+//	}
+//}
+//void send_video_data(ID3D11Device* cur_d3d11, ID3D11Texture2D* cur_d3d11_texture)
+//{
+//	static ID3D11Texture2D* cur_d3d11_texture_read = NULL;
+//	if (!cur_d3d11_texture_read)
+//	{
+//		D3D11_TEXTURE2D_DESC bufferTextureDesc = { 0 };
+//		bufferTextureDesc.Width = data.cx;
+//		bufferTextureDesc.Height = data.cy;
+//		bufferTextureDesc.MipLevels = 1;
+//		bufferTextureDesc.ArraySize = 1;
+//		//	bufferTextureDesc.Format = DXGI_FORMAT_NV12;
+//		bufferTextureDesc.SampleDesc.Count = 1;
+//		//bufferTextureDesc.Usage = D3D11_USAGE_DEFAULT;
+//		//bufferTextureDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+//		//bufferTextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+//		HRESULT hr;
+//		/*hr = ID3D11Device_GetDesc(data.d3d11_tex, &bufferTextureDesc);
+//		if (FAILED(hr))
+//		{
+//			fprintf(out_gl_capture_ptr, "[%s][%d][ERROR]\n", __FUNCTION__,
+//				__LINE__);
+//			fflush(out_gl_capture_ptr);
+//			return;
+//		}*/
+//		bufferTextureDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+//		bufferTextureDesc.BindFlags = 0;
+//		bufferTextureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+//		bufferTextureDesc.MiscFlags = 0;
+//		bufferTextureDesc.Usage = D3D11_USAGE_STAGING;
+//		{
+//			SYSTEMTIME t1;
+//			GetSystemTime(&t1);
+//			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+//		}
+//
+//		//ID3D11Texture2D *d3d11_temp_texture2d;
+//
+//		hr = ID3D11Device_CreateTexture2D(cur_d3d11, &bufferTextureDesc, NULL, &cur_d3d11_texture_read);
+//		if (FAILED(hr))
+//		{
+//			/*fprintf(out_gl_capture_ptr, "[%s][%d][ERROR]\n",
+//				__FUNCTION__, __LINE__);
+//			fflush(out_gl_capture_ptr);*/
+//			ERROR_EX_LOG("");
+//			return;
+//		}
+//	}
+//	ID3D11DeviceContext* d3d11_context_ptr = get_d3d11_device_context(cur_d3d11);
+//	{
+//		SYSTEMTIME t1;
+//		GetSystemTime(&t1);
+//		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+//	}
+//	if (!d3d11_context_ptr)
+//	{
+//		// error info 
+//		ERROR_EX_LOG("");
+//		return;
+//	}
 
 	
 	 
-	{
-		
-		
-		{
-			SYSTEMTIME t1;
-			GetSystemTime(&t1);
-			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
-		}
-		ID3D11DeviceContext_CopyResource(
+	//{
+		/*ID3D11DeviceContext_CopyResource(
 			d3d11_context_ptr,
 			(ID3D11Resource*)cur_d3d11_texture_read,
-			(ID3D11Resource*)cur_d3d11_texture);
-		{
-			/*fprintf(out_gl_capture_ptr, "[%s][%d][ID3D11DeviceContext_CopyResource]\n",
-				__FUNCTION__, __LINE__);
-			fflush(out_gl_capture_ptr);*/
-			//return;
-			 /* if (!out_gl_capture_ptr)
-			  {
-				  out_gl_capture_ptr = fopen(gl_capture_file_name, "wb+");
-			  }
+			(ID3D11Resource*)cur_d3d11_texture);*/
+		//c_cpp_rtc_texture((void *)cur_d3d11_texture_read, data.cx, data.cy);
+	//	return;
+	//	{
+	//		SYSTEMTIME t1;
+	//		GetSystemTime(&t1);
+	//		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+	//	}
+	//	
+	//	{
+	//		/*fprintf(out_gl_capture_ptr, "[%s][%d][ID3D11DeviceContext_CopyResource]\n",
+	//			__FUNCTION__, __LINE__);
+	//		fflush(out_gl_capture_ptr);*/
+	//		//return;
+	//		 /* if (!out_gl_capture_ptr)
+	//		  {
+	//			  out_gl_capture_ptr = fopen(gl_capture_file_name, "wb+");
+	//		  }
 
-			  fprintf(out_gl_capture_ptr, "[%s][%d][ID3D11DeviceContext_CopyResource]\n", __FUNCTION__, __LINE__);
-			  fflush(out_gl_capture_ptr);*/
-		}
-		{
-			SYSTEMTIME t1;
-			GetSystemTime(&t1);
-			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
-		}
-		HRESULT hr;
-		D3D11_MAPPED_SUBRESOURCE mapd;
-		UINT subResource = 0;
-		//D3D11CalcSubresource(0, 0, 1);
-		hr = ID3D11DeviceContext_Map(d3d11_context_ptr,
-			(ID3D11Resource*)cur_d3d11_texture_read,
-			subResource, D3D11_MAP_READ, 0,
-			&mapd);
-		if (FAILED(hr))
-		{
-			/*fprintf(out_gl_capture_ptr, "[%s][%d][ID3D11DeviceContext_Map][ERROR]\n", __FUNCTION__, __LINE__);
-			fflush(out_gl_capture_ptr);*/
-			return;
-		}
-		/*fprintf(out_gl_capture_ptr, "[%s][%d][ID3D11DeviceContext_Map]\n", __FUNCTION__, __LINE__);
-		fflush(out_gl_capture_ptr);*/
-		{
-			SYSTEMTIME t1;
-			GetSystemTime(&t1);
-			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
-		}
-		// filp
-		UINT rgba_size = data.cx * data.cy * 4;
+	//		  fprintf(out_gl_capture_ptr, "[%s][%d][ID3D11DeviceContext_CopyResource]\n", __FUNCTION__, __LINE__);
+	//		  fflush(out_gl_capture_ptr);*/
+	//	}
+	//	{
+	//		SYSTEMTIME t1;
+	//		GetSystemTime(&t1);
+	//		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+	//	}
+	//	return;
+	//	HRESULT hr;
+	//	D3D11_MAPPED_SUBRESOURCE mapd;
+	//	UINT subResource = 0;
+	//	//D3D11CalcSubresource(0, 0, 1);
+	//	hr = ID3D11DeviceContext_Map(d3d11_context_ptr,
+	//		(ID3D11Resource*)cur_d3d11_texture_read,
+	//		subResource, D3D11_MAP_READ, 0,
+	//		&mapd);
+	//	if (FAILED(hr))
+	//	{
+	//		/*fprintf(out_gl_capture_ptr, "[%s][%d][ID3D11DeviceContext_Map][ERROR]\n", __FUNCTION__, __LINE__);
+	//		fflush(out_gl_capture_ptr);*/
+	//		return;
+	//	}
+	//	/*fprintf(out_gl_capture_ptr, "[%s][%d][ID3D11DeviceContext_Map]\n", __FUNCTION__, __LINE__);
+	//	fflush(out_gl_capture_ptr);*/
+	//	{
+	//		SYSTEMTIME t1;
+	//		GetSystemTime(&t1);
+	//		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+	//	}
+	//	// filp
+	//	//UINT rgba_size = data.cx * data.cy * 4;
 
-		unsigned char* top = (unsigned char*)mapd.pData + (data.cx * 4);
+	//	//unsigned char* top = (unsigned char*)mapd.pData + (data.cx * 4);
 
-		unsigned char* bottom = top + (data.cy - 1) * (data.cx * 4);
-		//unsigned char* top, unsigned char* bottom,
-		//unsigned int rowSize, unsigned int rowStep
-		//
-		{
-			SYSTEMTIME t1;
-			GetSystemTime(&t1);
-			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
-		}
-		flipImageVertical(top, bottom, (unsigned int)(data.cx * 4), (unsigned int)(data.cx * 4));
-		
-		{
-			SYSTEMTIME t1;
-			GetSystemTime(&t1);
-			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
-		}
-		 
-		c_cpp_rtc_video(mapd.pData, data.cx, data.cy);
-		{
-			SYSTEMTIME t1;
-			GetSystemTime(&t1);
-			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
-		}
-		ID3D11DeviceContext_Unmap(d3d11_context_ptr,
-			(ID3D11Resource*)cur_d3d11_texture_read,
-			subResource);
+	//	//unsigned char* bottom = top + (data.cy - 1) * (data.cx * 4);
+	//	////unsigned char* top, unsigned char* bottom,
+	//	////unsigned int rowSize, unsigned int rowStep
+	//	////
+	//	//{
+	//	//	SYSTEMTIME t1;
+	//	//	GetSystemTime(&t1);
+	//	//	DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+	//	//}
+	//	//flipImageVertical(top, bottom, (unsigned int)(data.cx * 4), (unsigned int)(data.cx * 4));
+	//	//
+	//	/*{
+	//		SYSTEMTIME t1;
+	//		GetSystemTime(&t1);
+	//		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+	//	}*/
+	//	 
+	//	c_cpp_rtc_video(mapd.pData, data.cx, data.cy);
+	//	{
+	//		SYSTEMTIME t1;
+	//		GetSystemTime(&t1);
+	//		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+	//	}
+	//	ID3D11DeviceContext_Unmap(d3d11_context_ptr,
+	//		(ID3D11Resource*)cur_d3d11_texture_read,
+	//		subResource);
 
-		{
-			SYSTEMTIME t1;
-			GetSystemTime(&t1);
-			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
-		}
-		 
-	}
+	//	{
+	//		SYSTEMTIME t1;
+	//		GetSystemTime(&t1);
+	//		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+	//	}
+	//	 
+	//}
 	
+//
+//}
 
+void send_video_data()
+{
+	
+	c_cpp_rtc_texture((void*)get_shared(), data.cx, data.cy);
 }
-
 static void init_nv_functions(void)
 {
 	 
@@ -799,7 +816,11 @@ static bool gl_shtex_init(HWND window)
 
 static int gl_init(HDC hdc)
 {
-	 
+	{
+		SYSTEMTIME t1;
+		GetSystemTime(&t1);
+		DEBUG_EX_LOG("  cur = %u", t1.wMilliseconds);
+	}
 	HWND window = WindowFromDC(hdc);
 	int ret = INIT_FAILED;
 	bool success = false;
@@ -869,8 +890,8 @@ static void gl_copy_backbuffer(GLuint dst)
 	{
 		return;
 	}
-
-	glBlitFramebuffer(0, 0, data.cx, data.cy, 0, 0, data.cx, data.cy,
+	// TODO@chensong 2022-05-16   OpenGL 指定顶点位置 复制  
+	glBlitFramebuffer(0, data.cy, data.cx, 0, 0, 0, data.cx, data.cy,
 			  GL_COLOR_BUFFER_BIT, GL_LINEAR);
 	gl_error("gl_copy_backbuffer", "failed to blit");
 }
@@ -898,9 +919,17 @@ static void gl_copy_backbuffer(GLuint dst)
 	 {
 		 return;
 	 }
-
+	 {
+		 SYSTEMTIME t1;
+		 GetSystemTime(&t1);
+		 DEBUG_EX_LOG("  cur = %u", t1.wMilliseconds);
+	 }
 	 gl_copy_backbuffer(data.texture);
-
+	 {
+		 SYSTEMTIME t1;
+		 GetSystemTime(&t1);
+		 DEBUG_EX_LOG("  cur = %u", t1.wMilliseconds);
+	 }
 	 glBindTexture(GL_TEXTURE_2D, last_tex);
 	 glBindFramebuffer(GL_DRAW_FRAMEBUFFER, last_fbo);
 
@@ -946,7 +975,11 @@ static void gl_capture(HDC hdc)
 			return;
 		}
 	}
-
+	{
+		SYSTEMTIME t1;
+		GetSystemTime(&t1);
+		DEBUG_EX_LOG("  cur = %u", t1.wMilliseconds);
+	}
 	/* reset error flag */
 	glGetError();
 
@@ -962,7 +995,11 @@ static void gl_capture(HDC hdc)
 			return;
 		}
 	}
-	 
+	{
+		SYSTEMTIME t1;
+		GetSystemTime(&t1);
+		DEBUG_EX_LOG("  cur = %u", t1.wMilliseconds);
+	}
 	if (  hdc == data.hdc) {
 		uint32_t new_cx;
 		uint32_t new_cy;
@@ -987,8 +1024,17 @@ static void gl_capture(HDC hdc)
 
 		if (data.using_shtex)
 		{
-			 
+			{
+				SYSTEMTIME t1;
+				GetSystemTime(&t1);
+				DEBUG_EX_LOG("  cur = %u", t1.wMilliseconds);
+			}
 			gl_shtex_capture();
+			{
+				SYSTEMTIME t1;
+				GetSystemTime(&t1);
+				DEBUG_EX_LOG("  cur = %u", t1.wMilliseconds);
+			}
 		} else {
 			// error info 
 		}
@@ -1033,9 +1079,19 @@ static inline void gl_swap_end(HDC hdc)
 		return;
 	}
 	data.write_tick_count = GetTickCount64() + FRAME_SUM;*/
-	if (first /*&& global_hook_info->capture_overlay*/)
+	if (first && gl_video_data.ready == 0)
 	{
+		{
+		SYSTEMTIME t1;
+		GetSystemTime(&t1);
+		DEBUG_EX_LOG("capture -->> start cur = %u", t1.wMilliseconds);
+	}
 		gl_capture(hdc);
+		{
+		SYSTEMTIME t1;
+		GetSystemTime(&t1);
+		DEBUG_EX_LOG("capture -->> end cur = %u", t1.wMilliseconds);
+	}
 	}
 }
 
