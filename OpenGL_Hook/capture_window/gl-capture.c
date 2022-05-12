@@ -1,3 +1,14 @@
+/********************************************************************
+created:	2022-05-08
+
+author:		chensong
+
+
+purpose:	capture hook
+*********************************************************************/
+
+
+
 #ifdef _MSC_VER
 #pragma warning(disable : 4214) /* nonstandard extension, non-int bitfield */
 #pragma warning(disable : 4054) /* function pointer to data pointer */
