@@ -679,7 +679,8 @@ static void gl_capture(HDC hdc)
 { 
 	static bool critical_failure = false;
 
-	if (critical_failure) {
+	if (critical_failure) 
+	{
 		return;
 	}
 

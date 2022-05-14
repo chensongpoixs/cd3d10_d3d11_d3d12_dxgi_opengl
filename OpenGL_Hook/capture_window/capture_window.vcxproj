@@ -20,11 +20,20 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ccapture_hook.cpp" />
+    <ClCompile Include="d3d10-capture.cpp" />
+    <ClCompile Include="d3d11-capture.cpp" />
+    <ClCompile Include="d3d9-capture.cpp" />
+    <ClCompile Include="dxgi-capture.cpp" />
     <ClCompile Include="gl-capture.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="capture.h" />
     <ClInclude Include="ccapture_hook.h" />
+    <ClInclude Include="d3d8.h" />
+    <ClInclude Include="d3d8caps.h" />
+    <ClInclude Include="d3d8types.h" />
+    <ClInclude Include="d3d9-patches.hpp" />
+    <ClInclude Include="dxgi-helpers.hpp" />
     <ClInclude Include="gl-capture.h" />
     <ClInclude Include="gl-decs.h" />
   </ItemGroup>

@@ -419,3 +419,7 @@ BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, LPVOID unused1)
 	(void)unused1;
 	return true;
 }
+
+
+
+struct graphics_offsets* g_graphics_offsets = NULL;
