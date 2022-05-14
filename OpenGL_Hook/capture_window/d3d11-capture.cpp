@@ -37,16 +37,7 @@ struct d3d11_data {
 			ID3D11Texture2D *texture;
 			HANDLE handle;
 		};
-		/* shared memory */
-		struct {
-			ID3D11Texture2D *copy_surfaces[NUM_BUFFERS];
-			bool texture_ready[NUM_BUFFERS];
-			bool texture_mapped[NUM_BUFFERS];
-			uint32_t pitch;
-			struct shmem_data *shmem_info;
-			int cur_tex;
-			int copy_wait;
-		};
+		
 	};
 };
 
@@ -77,18 +68,16 @@ void d3d11_free(void)
 
 	//capture_free();
 
-	if (data.using_shtex) {
+	if (data.using_shtex) 
+	{
 		if (data.texture)
+		{
 			data.texture->Release();
-	} else {
-		for (size_t i = 0; i < NUM_BUFFERS; i++) {
-			if (data.copy_surfaces[i]) {
-				if (data.texture_mapped[i])
-					data.context->Unmap(
-						data.copy_surfaces[i], 0);
-				data.copy_surfaces[i]->Release();
-			}
 		}
+	} 
+	else 
+	{
+		ERROR_EX_LOG("not using shtex release  !!! ");
 	}
 
 	memset(&data, 0, sizeof(data));

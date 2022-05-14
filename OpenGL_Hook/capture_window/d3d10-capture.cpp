@@ -34,16 +34,7 @@ struct d3d10_data {
 			ID3D10Texture2D *texture;
 			HANDLE handle;
 		};
-		/* shared memory */
-		struct {
-			struct shmem_data *shmem_info;
-			ID3D10Texture2D *copy_surfaces[NUM_BUFFERS];
-			bool texture_ready[NUM_BUFFERS];
-			bool texture_mapped[NUM_BUFFERS];
-			uint32_t pitch;
-			int cur_tex;
-			int copy_wait;
-		};
+		
 	};
 };
 
@@ -100,18 +91,10 @@ void d3d10_free(void)
 		{
 			data.texture->Release();
 		}
-	} else {
-		for (size_t i = 0; i < NUM_BUFFERS; i++) 
-		{
-			if (data.copy_surfaces[i]) 
-			{
-				if (data.texture_mapped[i])
-				{
-					data.copy_surfaces[i]->Unmap(0);
-				}
-				data.copy_surfaces[i]->Release();
-			}
-		}
+	}
+	else 
+	{
+		ERROR_EX_LOG("not using release !!!");
 	}
 
 	memset(&data, 0, sizeof(data));
@@ -211,39 +194,6 @@ static inline bool d3d10_init_format(IDXGISwapChain *swap, HWND &window)
 	return true;
 }
 
-static bool d3d10_shmem_init_buffers(size_t idx)
-{
-	bool success;
-	DEBUG_EX_LOG("");
-	success = create_d3d10_stage_surface(&data.copy_surfaces[idx]);
-	if (!success) 
-	{
-		WARNING_EX_LOG("d3d10_shmem_init_buffers: failed to create copy surface");
-		return false;
-	}
-
-	if (idx == 0) 
-	{
-		D3D10_MAPPED_TEXTURE2D map = {};
-		HRESULT hr;
-
-		hr = data.copy_surfaces[idx]->Map(0, D3D10_MAP_READ, 0, &map);
-		if (FAILED(hr)) 
-		{
-			WARNING_EX_LOG("d3d10_shmem_init_buffers: failed to get "
-				"pitch",
-				hr);
-			return false;
-		}
-
-		data.pitch = map.RowPitch;
-		data.copy_surfaces[idx]->Unmap(0);
-	}
-
-	return true;
-}
-
- 
 
 static bool d3d10_shtex_init(HWND window)
 {
@@ -251,10 +201,10 @@ static bool d3d10_shtex_init(HWND window)
 
 	data.using_shtex = true;
 	DEBUG_EX_LOG("");
-	success =
-		create_d3d10_tex(data.cx, data.cy, &data.texture, &data.handle);
+	success = create_d3d10_tex(data.cx, data.cy, &data.texture, &data.handle);
 
-	if (!success) {
+	if (!success) 
+	{
 		WARNING_EX_LOG("d3d10_shtex_init: failed to create texture");
 		return false;
 	}

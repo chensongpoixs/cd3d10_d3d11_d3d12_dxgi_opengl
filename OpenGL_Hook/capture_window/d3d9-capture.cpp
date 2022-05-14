@@ -68,25 +68,28 @@ static void d3d9_free()
 {
 	//capture_free();
 	DEBUG_EX_LOG("");
-	if (data.using_shtex) {
+	if (data.using_shtex) 
+	{
 		if (data.d3d11_tex)
+		{
 			data.d3d11_tex->Release();
-		if (data.d3d11_context)
-			data.d3d11_context->Release();
-		if (data.d3d11_device)
-			data.d3d11_device->Release();
-		if (data.d3d9_copytex)
-			data.d3d9_copytex->Release();
-	} else {
-		for (size_t i = 0; i < NUM_BUFFERS; i++) {
-			if (data.copy_surfaces[i]) {
-				if (data.texture_mapped[i])
-					data.copy_surfaces[i]->UnlockRect();
-				data.copy_surfaces[i]->Release();
-			}
-			if (data.queries[i])
-				data.queries[i]->Release();
 		}
+		if (data.d3d11_context)
+		{
+			data.d3d11_context->Release();
+		}
+		if (data.d3d11_device)
+		{
+			data.d3d11_device->Release();
+		}
+		if (data.d3d9_copytex)
+		{
+			data.d3d9_copytex->Release();
+		}
+	} 
+	else 
+	{
+		DEBUG_EX_LOG("not using shut !!!");
 	}
 
 	memset(&data, 0, sizeof(data));
@@ -808,12 +811,15 @@ bool hook_d3d9(void)
 
 	if (g_graphics_offsets->d3d9.present < d3d9_size &&
 		g_graphics_offsets->d3d9.present_ex < d3d9_size &&
-		g_graphics_offsets->d3d9.present_swap < d3d9_size) {
+		g_graphics_offsets->d3d9.present_swap < d3d9_size) 
+	{
 		DEBUG_EX_LOG("----------------------->");
 		present_addr = get_offset_addr( d3d9_module, g_graphics_offsets->d3d9.present);
 		present_ex_addr = get_offset_addr( d3d9_module, g_graphics_offsets->d3d9.present_ex);
 		present_swap_addr = get_offset_addr( d3d9_module, g_graphics_offsets->d3d9.present_swap);
-	} else {
+	} 
+	else 
+	{
 		if (!dummy_window)
 		{
 			return false;
