@@ -152,7 +152,7 @@ static void gl_free(void)
 
 	memset(&data, 0, sizeof(data));
 
-	printf("------------------ gl capture freed ------------------");
+	DEBUG_EX_LOG("------------------ gl capture freed ------------------");
 }
 
 static inline void *base_get_proc(const char *name)
@@ -228,7 +228,7 @@ static void init_nv_functions(void)
 		!!jimglDXLockObjectsNV && !!jimglDXUnlockObjectsNV;
 
 	if (nv_capture_available)
-		printf("Shared-texture OpenGL capture available");
+		DEBUG_EX_LOG("Shared-texture OpenGL capture available");
 }
 
 #define GET_PROC(cur_func, ptr, func)                                      \
@@ -248,7 +248,7 @@ static bool init_gl_functions(void)
 
 	jimglGetProcAddress = base_get_proc("wglGetProcAddress");
 	if (!jimglGetProcAddress) {
-		printf("init_gl_functions: failed to get wglGetProcAddress");
+		DEBUG_EX_LOG("init_gl_functions: failed to get wglGetProcAddress");
 		return false;
 	}
 
@@ -306,7 +306,7 @@ static inline bool gl_shtex_init_window(void)
 		WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS, 0, 0, 2, 2, NULL,
 		NULL, GetModuleHandle(NULL), NULL);
 	if (!data.hwnd) {
-		printf("gl_shtex_init_window: failed to create window: %d",
+		DEBUG_EX_LOG("gl_shtex_init_window: failed to create window: %d",
 		     GetLastError());
 		return false;
 	}
@@ -332,14 +332,14 @@ static inline bool gl_shtex_init_d3d11(void)
 
 	HMODULE d3d11 = load_system_library("d3d11.dll");
 	if (!d3d11) {
-		printf("gl_shtex_init_d3d11: failed to load D3D11.dll: %d",
+		DEBUG_EX_LOG("gl_shtex_init_d3d11: failed to load D3D11.dll: %d",
 		     GetLastError());
 		return false;
 	}
 
 	HMODULE dxgi = load_system_library("dxgi.dll");
 	if (!dxgi) {
-		printf("gl_shtex_init_d3d11: failed to load DXGI.dll: %d",
+		DEBUG_EX_LOG("gl_shtex_init_d3d11: failed to load DXGI.dll: %d",
 		     GetLastError());
 		return false;
 	}
@@ -357,7 +357,7 @@ static inline bool gl_shtex_init_d3d11(void)
 	create_dxgi_factory1_t create_factory =
 		(void *)GetProcAddress(dxgi, "CreateDXGIFactory1");
 	if (!create_factory) {
-		printf("gl_shtex_init_d3d11: failed to load CreateDXGIFactory1 "
+		DEBUG_EX_LOG("gl_shtex_init_d3d11: failed to load CreateDXGIFactory1 "
 		     "procedure: %d",
 		     GetLastError());
 		return false;
@@ -366,7 +366,7 @@ static inline bool gl_shtex_init_d3d11(void)
 	PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN create =
 		(void *)GetProcAddress(d3d11, "D3D11CreateDeviceAndSwapChain");
 	if (!create) {
-		printf("gl_shtex_init_d3d11: failed to load "
+		DEBUG_EX_LOG("gl_shtex_init_d3d11: failed to load "
 		     "D3D11CreateDeviceAndSwapChain procedure: %d",
 		     GetLastError());
 		return false;
@@ -374,7 +374,7 @@ static inline bool gl_shtex_init_d3d11(void)
 
 	hr = create_factory(&GUID_IDXGIFactory1, (void **)&factory);
 	if (FAILED(hr)) {
-		printf("gl_shtex_init_d3d11: failed to create factory");
+		DEBUG_EX_LOG("gl_shtex_init_d3d11: failed to create factory");
 		return false;
 	}
 
@@ -383,7 +383,7 @@ static inline bool gl_shtex_init_d3d11(void)
 	IDXGIFactory1_Release(factory);
 
 	if (FAILED(hr)) {
-		printf("gl_shtex_init_d3d11: failed to create adapter");
+		DEBUG_EX_LOG("gl_shtex_init_d3d11: failed to create adapter");
 		return false;
 	}
 
@@ -394,7 +394,7 @@ static inline bool gl_shtex_init_d3d11(void)
 	IDXGIAdapter_Release(adapter);
 
 	if (FAILED(hr)) {
-		printf("gl_shtex_init_d3d11: failed to create device");
+		DEBUG_EX_LOG("gl_shtex_init_d3d11: failed to create device");
 		return false;
 	}
 
@@ -420,7 +420,7 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 	hr = ID3D11Device_CreateTexture2D(data.d3d11_device, &desc, NULL,
 					  &data.d3d11_tex);
 	if (FAILED(hr)) {
-		printf("gl_shtex_init_d3d11_tex: failed to create texture" );
+		DEBUG_EX_LOG("gl_shtex_init_d3d11_tex: failed to create texture" );
 		return false;
 	}
 	 
@@ -430,7 +430,7 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 		(void**)&dxgi_res);
 	if (FAILED(hr))
 	{
-		printf("gl_shtex_init_d3d11_tex: failed to get IDXGIResource");
+		DEBUG_EX_LOG("gl_shtex_init_d3d11_tex: failed to get IDXGIResource");
 		return false;
 	}
 
@@ -439,7 +439,7 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 
 	if (FAILED(hr))
 	{
-		printf("gl_shtex_init_d3d11_tex: failed to get shared handle");
+		DEBUG_EX_LOG("gl_shtex_init_d3d11_tex: failed to get shared handle");
 		return false;
 	}
 	return true;
@@ -450,7 +450,7 @@ static inline bool gl_shtex_init_gl_tex(void)
 	 //1. 把D3D11的资源转换为OpenGL的资源
 	data.gl_device = jimglDXOpenDeviceNV(data.d3d11_device);
 	if (!data.gl_device) {
-		printf("gl_shtex_init_gl_tex: failed to open device");
+		DEBUG_EX_LOG("gl_shtex_init_gl_tex: failed to open device");
 		return false;
 	}
 	// 2. 得到OpenGL的纹理信息
@@ -463,7 +463,7 @@ static inline bool gl_shtex_init_gl_tex(void)
 						data.texture, GL_TEXTURE_2D,
 						WGL_ACCESS_WRITE_DISCARD_NV);
 	if (!data.gl_dxobj) {
-		printf("gl_shtex_init_gl_tex: failed to register object");
+		DEBUG_EX_LOG("gl_shtex_init_gl_tex: failed to register object");
 		return false;
 	}
 
@@ -527,9 +527,10 @@ static bool gl_shtex_init(HWND window)
 	{
 		return false;
 	}
+	capture_init_shtex( window, data.cx, data.cy, data.format, data.handle);
 	 
 
-	printf("gl shared texture capture successful");
+	DEBUG_EX_LOG("capture_init_shtex gl shared texture capture successful");
 	return true;
 }
 
@@ -844,7 +845,7 @@ static bool gl_register_window(void)
 	wc.lpszClassName = DUMMY_WINDOW_CLASS_NAME;
 
 	if (!RegisterClassW(&wc)) {
-		printf("gl_register_window: failed to register window class: %d",
+		DEBUG_EX_LOG("gl_register_window: failed to register window class: %d",
 		     GetLastError());
 		return false;
 	}
@@ -861,7 +862,8 @@ static bool gl_register_window(void)
 	void *wgl_sb_proc;
 
 	gl = get_system_module("opengl32.dll");
-	if (!gl) {
+	if (!gl) 
+	{
 		return false;
 	}
 
@@ -870,7 +872,7 @@ static bool gl_register_window(void)
 	/*const char *process_name = get_process_name();
 	if (_strcmpi(process_name, "yo_cm_client.exe") == 0 ||
 	    _strcmpi(process_name, "cm_client.exe") == 0) {
-		printf("Ignoring opengl for game: %s", process_name);
+		DEBUG_EX_LOG("Ignoring opengl for game: %s", process_name);
 		return true;
 	}*/
 
@@ -905,20 +907,20 @@ static bool gl_register_window(void)
 	const LONG error = DetourTransactionCommit();
 	const bool success = error == NO_ERROR;
 	if (success) {
-		printf("Hooked SwapBuffers");
+		DEBUG_EX_LOG("Hooked SwapBuffers");
 		if (RealWglDeleteContext)
-			printf("Hooked wglDeleteContext");
+			DEBUG_EX_LOG("Hooked wglDeleteContext");
 		if (RealWglSwapLayerBuffers)
-			printf("Hooked wglSwapLayerBuffers");
+			DEBUG_EX_LOG("Hooked wglSwapLayerBuffers");
 		if (RealWglSwapBuffers)
-			printf("Hooked wglSwapBuffers");
-		printf("Hooked GL");
+			DEBUG_EX_LOG("Hooked wglSwapBuffers");
+		DEBUG_EX_LOG("Hooked GL");
 	} else {
 		RealSwapBuffers = NULL;
 		RealWglDeleteContext = NULL;
 		RealWglSwapLayerBuffers = NULL;
 		RealWglSwapBuffers = NULL;
-		printf("Failed to attach Detours hook: %ld", error);
+		DEBUG_EX_LOG("Failed to attach Detours hook: %ld", error);
 	}
 
 	return success;

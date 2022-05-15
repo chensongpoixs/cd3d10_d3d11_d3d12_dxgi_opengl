@@ -7,7 +7,7 @@
 //#include "graphics-hook.h"
 #include "ccapture_hook.h"
 #include <detours.h>
-
+#include "cd3dxx.h"
 #if COMPILE_D3D12_HOOK
 #include <d3d12.h>
 #endif
@@ -150,7 +150,9 @@ static HRESULT STDMETHODCALLTYPE hook_resize_buffers(IDXGISwapChain *swap,
 	dxgi_present_attempted = false;
 
 	if (data.free)
+	{
 		data.free();
+	}
 	data.free = nullptr;
 
 	const HRESULT hr = RealResizeBuffers(swap, buffer_count, width, height,
@@ -212,7 +214,8 @@ static HRESULT STDMETHODCALLTYPE hook_present(IDXGISwapChain *swap,
 		update_mismatch_count(swap == data.swap);
 	}
 
-	if (!data.swap ) {
+	if (!data.swap )
+	{
 		setup_dxgi(swap);
 	}
 
@@ -331,7 +334,8 @@ bool hook_dxgi(void)
 		return false;
 	}
 	HMODULE dxgi_module = get_system_module("dxgi.dll");
-	if (!dxgi_module) {
+	if (!dxgi_module) 
+	{
 		WARNING_EX_LOG("Failed to find dxgi.dll. Skipping hook attempt.");
 		return false;
 	}

@@ -29,6 +29,7 @@
   <ItemGroup>
     <ClInclude Include="capture.h" />
     <ClInclude Include="ccapture_hook.h" />
+    <ClInclude Include="cd3dxx.h" />
     <ClInclude Include="d3d8.h" />
     <ClInclude Include="d3d8caps.h" />
     <ClInclude Include="d3d8types.h" />
@@ -90,6 +91,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>capture_hook64</TargetName>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)..\vsout\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -146,7 +149,7 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>C:\Work\cabroad_server\Server\bin\x64\Release\cloud_rendering.lib;C:\Work\mediaserver\window\ccapture_windows\capture_window\capture_window\lib\detours.lib;dxguid.lib;opengl32.lib;d3d11.lib;d3dcompiler.lib</AdditionalDependencies>
+      <AdditionalDependencies>C:\Work\cabroad_server\Server\bin\x64\Release\cloud_rendering.lib;C:\Work\mediaserver\window\ccapture_windows\capture_window\capture_window\lib\detours.lib;dxguid.lib;User32.lib;Gdi32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -5,7 +5,7 @@
 //#include "graphics-hook.h"
 #include "d3d9-patches.hpp"
 #include "ccapture_hook.h"
-
+#include "cd3dxx.h"
 #include <detours.h>
 
 typedef HRESULT(STDMETHODCALLTYPE *present_t)(IDirect3DDevice9 *, CONST RECT *,
@@ -309,8 +309,8 @@ static bool d3d9_shtex_init(HWND window)
 				(uintptr_t)data.handle)) {
 		return false;
 	}*/
-
-	DEBUG_EX_LOG("d3d9 shared texture capture successful");
+	capture_init_shtex(window, data.cx, data.cy, data.dxgi_format, data.handle);
+	DEBUG_EX_LOG("capture_init_shtex d3d9 shared texture capture successful");
 	return true;
 }
 
@@ -605,7 +605,9 @@ static HRESULT STDMETHODCALLTYPE hook_present(IDirect3DDevice9 *device,
 	IDirect3DSurface9 *backbuffer = nullptr;
 	DEBUG_EX_LOG("");
 	if (!hooked_reset)
+	{
 		setup_reset_hooks(device);
+	}
 
 	present_begin(device, backbuffer);
 
@@ -624,7 +626,9 @@ static HRESULT STDMETHODCALLTYPE hook_present_ex(
 	IDirect3DSurface9 *backbuffer = nullptr;
 	DEBUG_EX_LOG("");
 	if (!hooked_reset)
+	{
 		setup_reset_hooks(device);
+	}
 
 	present_begin(device, backbuffer);
 
@@ -794,6 +798,9 @@ static inline uint32_t module_size(HMODULE module)
 		&info, sizeof(info));
 	return success ? info.SizeOfImage : 0;
 }
+
+
+
 bool hook_d3d9(void)
 {
 	DEBUG_EX_LOG("");
@@ -803,7 +810,9 @@ bool hook_d3d9(void)
 	void *present_ex_addr = nullptr;
 	void *present_swap_addr = nullptr;
 
-	if (!d3d9_module) {
+	if (!d3d9_module) 
+	{
+		WARNING_EX_LOG("not load d3d9 faild !!!");
 		return false;
 	}
 

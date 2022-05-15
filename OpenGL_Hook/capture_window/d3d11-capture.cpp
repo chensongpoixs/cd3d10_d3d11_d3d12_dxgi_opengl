@@ -194,8 +194,8 @@ static bool d3d11_shtex_init(HWND window)
 				data.format, false, (uintptr_t)data.handle)) {
 		return false;
 	}*/
-
-	DEBUG_EX_LOG("d3d11 shared texture capture successful");
+	capture_init_shtex(window, data.cx, data.cy, data.format,  data.handle);
+	DEBUG_EX_LOG("capture_init_shtex d3d11 shared texture capture successful");
 	return true;
 }
 

@@ -17,7 +17,7 @@
 #include "capture.h"
 #include <chrono>
 #include "C:\Work\cabroad_server\Server\Robot\ccloud_rendering_c.h"
-
+#include "cd3dxx.h"
 static HINSTANCE dll_inst = NULL;
 static volatile bool stop_loop = false;
 static HANDLE capture_thread = NULL;
@@ -28,11 +28,20 @@ char system_path[MAX_PATH] = { 0 };
 char process_name[MAX_PATH] = { 0 };
 wchar_t keepalive_name[64] = { 0 };
 HWND dummy_window = NULL;
-#pragma comment  (lib,"User32.lib")
-#pragma comment  (lib,"Gdi32.lib")
-#pragma comment  (lib,"d3d11.lib")
-#pragma comment  (lib,"d3dcompiler.lib")
-#pragma comment  (lib,"dxgi.lib")//d3dcompiler.lib
+//#pragma comment  (lib,"User32.lib")
+//#pragma comment  (lib,"Gdi32.lib")
+//#pragma comment  (lib,"d3d11.lib")
+//#pragma comment  (lib,"d3dcompiler.lib")
+//#pragma comment  (lib,"dxgi.lib")//d3dcompiler.lib
+
+
+struct ccapture
+{
+	HANDLE handle;
+	uint32_t width;
+	uint32_t height;
+};
+static struct ccapture capture = {0};
 
 bool  startup_capture_send_video_thread()
 {
@@ -50,7 +59,7 @@ static inline bool init_system_path(void)
 	 
 	UINT ret = GetSystemDirectoryA(system_path, MAX_PATH);
 	if (!ret) {
-		printf("Failed to get windows system path: %lu\n", GetLastError());
+		DEBUG_EX_LOG("Failed to get windows system path: %lu\n", GetLastError());
 		return false;
 	}
 
@@ -75,7 +84,7 @@ static DWORD WINAPI dummy_window_thread(LPVOID *unused)
 	wc.lpszClassName = dummy_window_class;
 
 	if (!RegisterClass(&wc)) {
-		printf("Failed to create temp D3D window class: %lu",
+		DEBUG_EX_LOG("Failed to create temp D3D window class: %lu",
 			GetLastError());
 		return 0;
 	}
@@ -84,7 +93,7 @@ static DWORD WINAPI dummy_window_thread(LPVOID *unused)
 		DEF_FLAGS, 0, 0, 1, 1, NULL, NULL,
 		dll_inst, NULL);
 	if (!dummy_window) {
-		printf("Failed to create temp D3D window: %lu", GetLastError());
+		DEBUG_EX_LOG("Failed to create temp D3D window: %lu", GetLastError());
 		return 0;
 	}
 
@@ -135,7 +144,7 @@ static inline void init_dummy_window_thread(void)
 	HANDLE thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)dummy_window_thread, NULL, 0, NULL);
 	if (!thread) 
 	{
-		printf("Failed to create temp D3D window thread: %lu",
+		DEBUG_EX_LOG("Failed to create temp D3D window thread: %lu",
 			GetLastError());
 		 
 		return;
@@ -151,15 +160,15 @@ static inline void log_current_process(void)
 		MAX_PATH);
 	if (len > 0) {
 		process_name[len] = 0;
-		printf("capture_hook.dll loaded against process: %s",
+		DEBUG_EX_LOG("capture_hook.dll loaded against process: %s",
 			process_name);
 		 
 	}
 	else {
-		printf("capture_hook.dll loaded");
+		DEBUG_EX_LOG("capture_hook.dll loaded");
 	}
 	 
-	printf("(half life scientist) everything..  seems to be in order");
+	DEBUG_EX_LOG("(half life scientist) everything..  seems to be in order");
 }
 
  
@@ -184,7 +193,7 @@ bool open_shared_d3d11_texture(ID3D11Device* device, uintptr_t handler, ID3D11Te
 	//ID3D11Device_OpenSharedResource();
 	if (FAILED(hr))
 	{
-		printf("open_shared_d3d11_texture: open shared handler  failed  !!!");
+		DEBUG_EX_LOG("open_shared_d3d11_texture: open shared handler  failed  !!!");
 		return false;
 	}
 	return true;
@@ -219,11 +228,13 @@ void g_send_video_callback()
 		timestamp = timestamp_curr;
 	}
 	
-	if (!hook_captuer_ok())
+	if (!capture.handle || capture.width< 1 || capture.height < 1)
 	{
-		ERROR_EX_LOG("");
+		WARNING_EX_LOG("[capture.handle = %p][capture.width = %u][capture.height = %u]", capture.handle, capture.width, capture.height);
 		return;
 	}
+
+	c_cpp_rtc_texture((void*)capture.handle, capture.width, capture.height);
 	//static ID3D11Device* cur_d3d11_ptr = NULL;
 	//static ID3D11Texture2D* cur_d3d11_texture_ptr = NULL;
 	//static ID3D11Texture2D* cur_d3d11_texture_read_ptr = NULL;
@@ -275,7 +286,7 @@ void g_send_video_callback()
 	//	GetSystemTime(&t1);
 	//	DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
 	//}
-	send_video_data();
+	//send_video_data();
 	
 	{
 		SYSTEMTIME t1;
@@ -294,28 +305,83 @@ void g_send_video_callback()
 		out_gl_capture_ptr = fopen(gl_capture_file_name, "wb+");
 	}
 
-	fprintf(out_gl_capture_ptr, "[%s][%d]\n", __FUNCTION__, __LINE__);
+	fDEBUG_EX_LOG(out_gl_capture_ptr, "[%s][%d]\n", __FUNCTION__, __LINE__);
 	fflush(out_gl_capture_ptr);*/
 	
+}
+
+
+
+
+static inline bool d3d9_hookable(void)
+{
+	return !!g_graphics_offsets->d3d9.present &&
+		!!g_graphics_offsets->d3d9.present_ex &&
+		!!g_graphics_offsets->d3d9.present_swap;
+}
+static inline bool dxgi_hookable(void)
+{
+	return !!g_graphics_offsets->dxgi.present &&
+		!!g_graphics_offsets->dxgi.resize;
 }
 static inline bool attempt_hook(void)
 {
 	
-
-	static bool gl_hooked = false;
-
-
-	if (!gl_hooked) 
+	c_cpp_graphics_offsets((void **)&g_graphics_offsets);
+	if (!g_graphics_offsets)
 	{
-		
+		WARNING_EX_LOG("not graphics_offsets get failed !!!");
+		return false;
+	}
+	static bool gl_hooked = false;
+	static bool d3d9_hooked = false;
+	static bool d3d12_hooked = false;
+	static bool dxgi_hooked = false;
+
+
+	if (!d3d9_hooked)
+	{
+		if (!d3d9_hookable())
+		{
+			WARNING_EX_LOG("  no D3D9 hook address found!\n");
+			d3d9_hooked = true;
+		}
+		else
+		{
+			d3d9_hooked = hook_d3d9();
+			if (d3d9_hooked)
+			{
+				return true;
+			}
+		}
+	}
+
+	if (!dxgi_hooked)
+	{
+		if (!dxgi_hookable())
+		{
+			WARNING_EX_LOG("  no DXGI hook address found!\n");
+			dxgi_hooked = true;
+		}
+		else
+		{
+			dxgi_hooked = hook_dxgi();
+			if (dxgi_hooked)
+			{
+				return true;
+			}
+		}
+	}
+	if (!gl_hooked)
+	{
+
 		gl_hooked = hook_gl();
-		if (gl_hooked) 
+		if (gl_hooked)
 		{
 			return true;
 		}
-		
-	}
 
+	}
 	return false;
 }
 
@@ -343,7 +409,7 @@ static DWORD WINAPI main_capture_thread(HANDLE thread_handle)
 	// 1. 窗口事件检查
 	if (!init_hook(thread_handle)) 
 	{
-		printf(  "[%s][%d][OBS] Failed to init hook\n", __FUNCTION__, __LINE__);
+		DEBUG_EX_LOG(  "[%s][%d][OBS] Failed to init hook\n", __FUNCTION__, __LINE__);
 		 
 		return 0;
 	}
@@ -377,7 +443,7 @@ BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, LPVOID unused1)
 
 		if (!success)
 		{
-			printf("[OBS] Failed to get current thread handle\n");
+			DEBUG_EX_LOG("[OBS] Failed to get current thread handle\n");
 		}
 
 		 
@@ -420,6 +486,11 @@ BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, LPVOID unused1)
 	return true;
 }
 
-
+void capture_init_shtex(HWND window, uint32_t cx, uint32_t cy, uint32_t format, HANDLE handle)
+{
+	capture.handle =  handle;
+	capture.width = cx;
+	capture.height = cy;
+}
 
 struct graphics_offsets* g_graphics_offsets = NULL;
