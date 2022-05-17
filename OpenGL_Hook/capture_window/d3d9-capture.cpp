@@ -7,7 +7,7 @@
 #include "ccapture_hook.h"
 #include "cd3dxx.h"
 #include <detours.h>
-
+#include "C:\Work\cabroad_server\Server\Robot\ccloud_rendering_c.h"
 typedef HRESULT(STDMETHODCALLTYPE *present_t)(IDirect3DDevice9 *, CONST RECT *,
 					      CONST RECT *, HWND,
 					      CONST RGNDATA *);
@@ -60,6 +60,7 @@ struct d3d9_data {
 	int cur_tex;
 	int copy_wait;
 	bool init_capture;
+	int write_tick_count;
 };
 
 static struct d3d9_data data = {};
@@ -91,7 +92,7 @@ static void d3d9_free()
 	{
 		DEBUG_EX_LOG("not using shut !!!");
 	}
-
+	data.init_capture = false;
 	memset(&data, 0, sizeof(data));
 
 	DEBUG_EX_LOG("----------------- d3d9 capture freed -----------------");
@@ -309,6 +310,7 @@ static bool d3d9_shtex_init(HWND window)
 				(uintptr_t)data.handle)) {
 		return false;
 	}*/
+	capture_count(0);
 	capture_init_shtex(window, data.cx, data.cy, data.dxgi_format, data.handle);
 	DEBUG_EX_LOG("capture_init_shtex d3d9 shared texture capture successful");
 	return true;
@@ -511,8 +513,18 @@ static inline void d3d9_shtex_capture(IDirect3DSurface9 *backbuffer)
 	DEBUG_EX_LOG("");
 	hr = data.device->StretchRect(backbuffer, nullptr, data.d3d9_copytex,
 				      nullptr, D3DTEXF_NONE);
+	
 	if (FAILED(hr))
+	{
 		ERROR_EX_LOG("d3d9_shtex_capture: StretchRect failed", hr);
+		return;
+	}
+	if (data.write_tick_count == 0)
+	{
+		capture_count(1);
+		c_set_send_video_callback(&g_send_video_callback);
+	}
+	data.write_tick_count = GetTickCount64();
 }
 
 
@@ -528,6 +540,7 @@ static void d3d9_capture(IDirect3DDevice9 *device,
 	if (!data.init_capture) 
 	{
 		d3d9_init(device);
+		data.init_capture = true;
 	}
 	//if (capture_ready()) 
 	{
@@ -538,7 +551,10 @@ static void d3d9_capture(IDirect3DDevice9 *device,
 
 		if (data.using_shtex)
 		{
+			
 			d3d9_shtex_capture(backbuffer);
+			
+			//capture_init_shtex(NULL, data.cx, data.cy, data.d3d9_format, data.handle);
 		}
 		else
 		{
@@ -831,6 +847,7 @@ bool hook_d3d9(void)
 	{
 		if (!dummy_window)
 		{
+			WARNING_EX_LOG("----------dummy_window------->");
 			return false;
 		}
 

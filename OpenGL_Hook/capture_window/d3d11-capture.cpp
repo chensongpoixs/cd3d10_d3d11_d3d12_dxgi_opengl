@@ -5,6 +5,7 @@
 //#include "graphics-hook.h"
 #include "ccapture_hook.h"
 #include <iostream>
+#include "C:\Work\cabroad_server\Server\Robot\ccloud_rendering_c.h"
 struct d3d11_data {
 	ID3D11Device *device;         /* do not release */
 	ID3D11DeviceContext *context; /* do not release */
@@ -39,6 +40,7 @@ struct d3d11_data {
 		};
 		
 	};
+	int write_tick_count = 0;
 };
 
 static struct d3d11_data data = {};
@@ -132,7 +134,9 @@ static bool create_d3d11_tex(uint32_t cx, uint32_t cy, ID3D11Texture2D **tex,
 		return false;
 	}
 
-	if (!!handle) {
+	if (!!handle) 
+	{
+		DEBUG_EX_LOG("set shared GPU !!!");
 		IDXGIResource *dxgi_res;
 		hr = (*tex)->QueryInterface(__uuidof(IDXGIResource),
 					    (void **)&dxgi_res);
@@ -194,6 +198,7 @@ static bool d3d11_shtex_init(HWND window)
 				data.format, false, (uintptr_t)data.handle)) {
 		return false;
 	}*/
+	capture_count(0);
 	capture_init_shtex(window, data.cx, data.cy, data.format,  data.handle);
 	DEBUG_EX_LOG("capture_init_shtex d3d11 shared texture capture successful");
 	return true;
@@ -228,12 +233,18 @@ static void d3d11_init(IDXGISwapChain *swap)
 
 static inline void d3d11_copy_texture(ID3D11Resource *dst, ID3D11Resource *src)
 {
-	DEBUG_EX_LOG("");
+	DEBUG_EX_LOG("[data.multisampled = %u]", data.multisampled);
 	if (data.multisampled) {
 		data.context->ResolveSubresource(dst, 0, src, 0, data.format);
 	} else {
 		data.context->CopyResource(dst, src);
 	}
+	if (data.write_tick_count == 0)
+	{
+		capture_count(1);
+		c_set_send_video_callback(&g_send_video_callback);
+	}
+	data.write_tick_count = GetTickCount64();
 }
 
 static inline void d3d11_shtex_capture(ID3D11Resource *backbuffer)
@@ -254,7 +265,8 @@ void d3d11_capture(void *swap_ptr, void *backbuffer_ptr)
 	/*if (capture_should_stop()) {
 		d3d11_free();
 	}*/
-	if (!data.init_capture) {
+	if (!data.init_capture)
+	{
 		d3d11_init(swap);
 		data.init_capture = true;
 
@@ -275,7 +287,10 @@ void d3d11_capture(void *swap_ptr, void *backbuffer_ptr)
 
 		if (data.using_shtex)
 		{
+			
 			d3d11_shtex_capture(backbuffer);
+			//capture_init_shtex(NULL, data.cx, data.cy, data.format, data.handle);
+			
 		}
 		else
 		{

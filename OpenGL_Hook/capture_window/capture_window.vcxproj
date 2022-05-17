@@ -93,6 +93,7 @@
     <TargetName>capture_hook64</TargetName>
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)..\vsout\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <ExternalIncludePath>C:\Work\mediaserver\cd3d10_d3d11_d3d12_dxgi_opengl\OpenGL_Hook\capture_window;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

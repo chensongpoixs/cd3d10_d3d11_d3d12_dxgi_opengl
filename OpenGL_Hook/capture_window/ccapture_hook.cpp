@@ -18,6 +18,14 @@
 #include <chrono>
 #include "C:\Work\cabroad_server\Server\Robot\ccloud_rendering_c.h"
 #include "cd3dxx.h"
+
+struct gl_read_video
+{
+	int ready;
+	void* handler;
+};
+static struct gl_read_video  gl_video_data = { 0 };
+
 static HINSTANCE dll_inst = NULL;
 static volatile bool stop_loop = false;
 static HANDLE capture_thread = NULL;
@@ -40,6 +48,7 @@ struct ccapture
 	HANDLE handle;
 	uint32_t width;
 	uint32_t height;
+	uint32_t count;
 };
 static struct ccapture capture = {0};
 
@@ -199,9 +208,15 @@ bool open_shared_d3d11_texture(ID3D11Device* device, uintptr_t handler, ID3D11Te
 	return true;
 }
 
+void* get_shared()
+{
+	gl_video_data.handler = capture.handle;
+	return &gl_video_data;
+}
+
 void g_send_video_callback()
 {
-	//DEBUG_EX_LOG("");
+	DEBUG_EX_LOG("");
 	/*if (!data.d3d11_tex_video)
 	{
 		return;
@@ -228,13 +243,13 @@ void g_send_video_callback()
 		timestamp = timestamp_curr;
 	}
 	
-	if (!capture.handle || capture.width< 1 || capture.height < 1)
+	if (!capture.handle || capture.width< 1 || capture.height < 1 || capture.count < 1)
 	{
-		WARNING_EX_LOG("[capture.handle = %p][capture.width = %u][capture.height = %u]", capture.handle, capture.width, capture.height);
+		WARNING_EX_LOG("[capture.handle = %p][capture.width = %u][capture.height = %u][capture.count = %u]", capture.handle, capture.width, capture.height, capture.count);
 		return;
 	}
 
-	c_cpp_rtc_texture((void*)capture.handle, capture.width, capture.height);
+	c_cpp_rtc_texture((void*)get_shared(), capture.width, capture.height);
 	//static ID3D11Device* cur_d3d11_ptr = NULL;
 	//static ID3D11Texture2D* cur_d3d11_texture_ptr = NULL;
 	//static ID3D11Texture2D* cur_d3d11_texture_read_ptr = NULL;
@@ -337,8 +352,20 @@ static inline bool attempt_hook(void)
 	static bool d3d9_hooked = false;
 	static bool d3d12_hooked = false;
 	static bool dxgi_hooked = false;
-
-
+	//DEBUG_EX_LOG("", g_graphics_offsets->dxgi.present);
+	//DEBUG_EX_LOG("[d3d8]\n");
+	//DEBUG_EX_LOG("present=0x%" PRIx32 "\n", g_graphics_offsets->d3d8.present);
+	//DEBUG_EX_LOG("[d3d9]\n");
+	//DEBUG_EX_LOG("present=0x%" PRIx32 "\n", g_graphics_offsets->d3d9.present);
+	//DEBUG_EX_LOG("present_ex=0x%" PRIx32 "\n", g_graphics_offsets->d3d9.present_ex);
+	//DEBUG_EX_LOG("present_swap=0x%" PRIx32 "\n", g_graphics_offsets->d3d9.present_swap);
+	//DEBUG_EX_LOG("d3d9_clsoff=0x%" PRIx32 "\n", g_graphics_offsets->d3d9.d3d9_clsoff);
+	//DEBUG_EX_LOG("is_d3d9ex_clsoff=0x%" PRIx32 "\n", g_graphics_offsets->d3d9.is_d3d9ex_clsoff);
+	//DEBUG_EX_LOG("[dxgi]\n");
+	//DEBUG_EX_LOG("present=0x%" PRIx32 "\n", g_graphics_offsets->dxgi.present);
+	//DEBUG_EX_LOG("present1=0x%" PRIx32 "\n", g_graphics_offsets->dxgi.present1);
+	//DEBUG_EX_LOG("resize=0x%" PRIx32 "\n", g_graphics_offsets->dxgi.resize);
+	//DEBUG_EX_LOG("release=0x%" PRIx32 "\n", g_graphics_offsets->dxgi2.release);
 	if (!d3d9_hooked)
 	{
 		if (!d3d9_hookable())
@@ -372,7 +399,7 @@ static inline bool attempt_hook(void)
 			}
 		}
 	}
-	if (!gl_hooked)
+	if ( !gl_hooked)
 	{
 
 		gl_hooked = hook_gl();
@@ -486,8 +513,13 @@ BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, LPVOID unused1)
 	return true;
 }
 
+void capture_count(uint32_t count)
+{
+	capture.count = count;
+}
 void capture_init_shtex(HWND window, uint32_t cx, uint32_t cy, uint32_t format, HANDLE handle)
 {
+	DEBUG_EX_LOG("[width = %u][height = %u][format = %u][handle = %p]", cx, cy, format, handle);
 	capture.handle =  handle;
 	capture.width = cx;
 	capture.height = cy;

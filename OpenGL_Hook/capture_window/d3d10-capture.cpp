@@ -5,6 +5,7 @@
 //#include "graphics-hook.h"
 #include "ccapture_hook.h"
 #include <iostream>
+#include "C:\Work\cabroad_server\Server\Robot\ccloud_rendering_c.h"
 struct d3d10_data {
 	ID3D10Device *device; /* do not release */
 	uint32_t cx;
@@ -36,6 +37,7 @@ struct d3d10_data {
 		};
 		
 	};
+	int write_tick_count;
 };
 
 static struct d3d10_data data = {};
@@ -96,7 +98,7 @@ void d3d10_free(void)
 	{
 		ERROR_EX_LOG("not using release !!!");
 	}
-
+	
 	memset(&data, 0, sizeof(data));
 
 	DEBUG_EX_LOG("----------------- d3d10 capture freed ----------------");
@@ -212,6 +214,7 @@ static bool d3d10_shtex_init(HWND window)
 				data.format, false, (uintptr_t)data.handle)) {
 		return false;
 	}*/
+	capture_count(0);
 	capture_init_shtex(window, data.cx, data.cy, data.format,  data.handle);
 	DEBUG_EX_LOG("capture_init_shtex d3d10 shared texture capture successful");
 	return true;
@@ -290,7 +293,16 @@ void d3d10_capture(void *swap_ptr, void *backbuffer_ptr)
 
 		if (data.using_shtex)
 		{
+			
 			d3d10_shtex_capture(backbuffer);
+			//capture_init_shtex(NULL, data.cx, data.cy, data.format, data.handle);
+			if (data.write_tick_count == 0)
+			{
+
+				c_set_send_video_callback(&g_send_video_callback);
+				capture_count(1);
+			}
+			data.write_tick_count = GetTickCount64();
 		}
 		else
 		{

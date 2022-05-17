@@ -89,15 +89,11 @@ struct gl_data {
 
 
 
-struct gl_read_video
-{
-	int ready;
-	void* handler;
-};
+
 static HMODULE gl = NULL;
 static bool nv_capture_available = false;
 static struct gl_data data = {0 };
-static struct gl_read_video  gl_video_data = {0};
+
 __declspec(thread) static int swap_recurse;
 //static int read_cpu = 0;
 static inline bool gl_error(const char *func, const char *str)
@@ -195,19 +191,15 @@ bool hook_captuer_ok(void )
 	return true;
 }
 
-void * get_shared()
-{
-	gl_video_data.handler = data.handle;
-	return &gl_video_data;
-}
 
 
 
-void send_video_data()
-{
-	
-	c_cpp_rtc_texture((void*)get_shared(), data.cx, data.cy);
-}
+
+//void send_video_data()
+//{
+//	
+//	c_cpp_rtc_texture((void*)get_shared(), data.cx, data.cy);
+//}
 static void init_nv_functions(void)
 {
 	 
@@ -527,6 +519,7 @@ static bool gl_shtex_init(HWND window)
 	{
 		return false;
 	}
+	capture_count(0);
 	capture_init_shtex( window, data.cx, data.cy, data.format, data.handle);
 	 
 
@@ -667,7 +660,7 @@ static void gl_copy_backbuffer(GLuint dst)
 	
 	 if (data.write_tick_count == 0)
 	 {
-
+		 capture_count(1);
 		 c_set_send_video_callback(&g_send_video_callback);
 	 }
 	 data.write_tick_count = GetTickCount64();
@@ -764,7 +757,7 @@ static inline void gl_swap_end(HDC hdc)
 { 
 	 
 	 
-	if ( gl_video_data.ready == 0)
+	//if ( gl_video_data.ready == 0)
 	{
 		{
 		SYSTEMTIME t1;
@@ -776,12 +769,15 @@ static inline void gl_swap_end(HDC hdc)
 		// 写入时覆盖，
 		// 读取时复制新GPU显卡上
 		gl_capture(hdc);
+
+		//capture_init_shtex(NULL, data.cx, data.cy, data.format, data.handle);
 		{
 		SYSTEMTIME t1;
 		GetSystemTime(&t1);
 		DEBUG_EX_LOG("capture -->> end cur = %u", t1.wMilliseconds);
 		}
 	}
+	
 }
 
 static BOOL WINAPI hook_swap_buffers(HDC hdc)
@@ -864,6 +860,7 @@ static bool gl_register_window(void)
 	gl = get_system_module("opengl32.dll");
 	if (!gl) 
 	{
+		WARNING_EX_LOG("hook opengl32 failed !!!");
 		return false;
 	}
 
@@ -876,10 +873,12 @@ static bool gl_register_window(void)
 		return true;
 	}*/
 
-	if (!gl_register_window()) {
+	if (!gl_register_window())
+	{
+		WARNING_EX_LOG("hook gl_register_window failed !!!");
 		return true;
 	}
-
+	DEBUG_EX_LOG("---...");
 	wgl_dc_proc = base_get_proc("wglDeleteContext");
 	wgl_slb_proc = base_get_proc("wglSwapLayerBuffers");
 	wgl_sb_proc = base_get_proc("wglSwapBuffers");

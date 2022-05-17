@@ -156,6 +156,7 @@ static inline void* get_offset_addr(HMODULE module, uint32_t offset)
 {
 	return (void*)((uintptr_t)module + (uintptr_t)offset);
 }
+void capture_count(uint32_t count);
 void capture_init_shtex(HWND window, uint32_t cx, uint32_t cy, uint32_t format, HANDLE handle);
 void g_send_video_callback();
 //extern   bool open_shared_d3d11_texture(ID3D11Device* device, uintptr_t handler, ID3D11Texture2D* d3d11_texture);
