@@ -414,7 +414,7 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 	desc.Format = data.format;
 	desc.SampleDesc.Count = 1;
 	desc.Usage = D3D11_USAGE_DEFAULT;
-	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
 	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
 	hr = ID3D11Device_CreateTexture2D(data.d3d11_device, &desc, NULL,
@@ -541,11 +541,7 @@ static bool gl_shtex_init(HWND window)
 
 static int gl_init(HDC hdc)
 {
-	{
-		SYSTEMTIME t1;
-		GetSystemTime(&t1);
-		DEBUG_EX_LOG("  cur = %u", t1.wMilliseconds);
-	}
+	 
 	HWND window = WindowFromDC(hdc);
 	int ret = INIT_FAILED;
 	bool success = false;
@@ -607,9 +603,7 @@ static void gl_copy_backbuffer(GLuint dst)
 
 	glReadBuffer(GL_BACK);
 
-	/* darkest dungeon fix */
-	darkest_dungeon_fix = glGetError() == GL_INVALID_OPERATION  && _strcmpi(process_name, "Darkest.exe") == 0 ;
-
+ 
 	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 	if (gl_error("gl_copy_backbuffer", "failed to set draw buffer")) 
 	{
@@ -644,17 +638,9 @@ static void gl_copy_backbuffer(GLuint dst)
 	 {
 		 return;
 	 }
-	 {
-		 SYSTEMTIME t1;
-		 GetSystemTime(&t1);
-		 DEBUG_EX_LOG("  cur = %u", t1.wMilliseconds);
-	 }
+	  
 	 gl_copy_backbuffer(data.texture);
-	 {
-		 SYSTEMTIME t1;
-		 GetSystemTime(&t1);
-		 DEBUG_EX_LOG("  cur = %u", t1.wMilliseconds);
-	 }
+	 
 	 glBindTexture(GL_TEXTURE_2D, last_tex);
 	 glBindFramebuffer(GL_DRAW_FRAMEBUFFER, last_fbo);
 
@@ -690,11 +676,7 @@ static void gl_capture(HDC hdc)
 			return;
 		}
 	}
-	{
-		SYSTEMTIME t1;
-		GetSystemTime(&t1);
-		DEBUG_EX_LOG("  cur = %u", t1.wMilliseconds);
-	}
+	 
 	/* reset error flag */
 	glGetError();
 
@@ -710,11 +692,7 @@ static void gl_capture(HDC hdc)
 			return;
 		}
 	}
-	{
-		SYSTEMTIME t1;
-		GetSystemTime(&t1);
-		DEBUG_EX_LOG("  cur = %u", t1.wMilliseconds);
-	}
+	 
 	if (  hdc == data.hdc) {
 		uint32_t new_cx;
 		uint32_t new_cy;
@@ -730,33 +708,15 @@ static void gl_capture(HDC hdc)
 			 
 			return;
 		}
-
-		if (data.using_shtex)
-		{
-			{
-				SYSTEMTIME t1;
-				GetSystemTime(&t1);
-				DEBUG_EX_LOG("  cur = %u", t1.wMilliseconds);
-			}
-			gl_shtex_capture();
-			{
-				SYSTEMTIME t1;
-				GetSystemTime(&t1);
-				DEBUG_EX_LOG("  cur = %u", t1.wMilliseconds);
-			}
-		} else {
-			// error info 
-		}
+		 
+		gl_shtex_capture();
+	 
 		 
 	}
 
 	 
 }
-// 这个函数目前啥事情都没有干
-static inline void gl_swap_begin(HDC hdc)
-{ 
-   
-}
+
 
 static inline void gl_swap_end(HDC hdc)
 { 
@@ -764,28 +724,28 @@ static inline void gl_swap_end(HDC hdc)
 	 
 	if ( gl_video_data.ready == 0)
 	{
-		{
+		/*{
 		SYSTEMTIME t1;
 		GetSystemTime(&t1);
 		DEBUG_EX_LOG("capture -->> start cur = %u", t1.wMilliseconds);
-		}
+		}*/
 		// 拷贝要渲染到屏幕上一帧数据拷贝到共享GPU显卡中去 ， 
 		// 原理是:
 		// 写入时覆盖，
 		// 读取时复制新GPU显卡上
 		gl_capture(hdc);
-		{
+		/*{
 		SYSTEMTIME t1;
 		GetSystemTime(&t1);
 		DEBUG_EX_LOG("capture -->> end cur = %u", t1.wMilliseconds);
-		}
+		}*/
 	}
 }
 
 static BOOL WINAPI hook_swap_buffers(HDC hdc)
 {
 	 
-	gl_swap_begin(hdc);
+	 
 
 	const BOOL ret = RealSwapBuffers(hdc);
 
@@ -797,8 +757,7 @@ static BOOL WINAPI hook_swap_buffers(HDC hdc)
 static BOOL WINAPI hook_wgl_swap_buffers(HDC hdc)
 {
 	 
-	gl_swap_begin(hdc);
-
+	 
 	const BOOL ret = RealWglSwapBuffers(hdc);
 
 	gl_swap_end(hdc);
@@ -809,8 +768,7 @@ static BOOL WINAPI hook_wgl_swap_buffers(HDC hdc)
 static BOOL WINAPI hook_wgl_swap_layer_buffers(HDC hdc, UINT planes)
 {
 	 
-	gl_swap_begin(hdc);
-
+	 
 	const BOOL ret = RealWglSwapLayerBuffers(hdc, planes);
 
 	gl_swap_end(hdc);
