@@ -44,7 +44,7 @@ HWND dummy_window = NULL;
 
 
 struct ccapture
-{
+{ 
 	HANDLE handle;
 	uint32_t width;
 	uint32_t height;
@@ -180,12 +180,40 @@ static inline void log_current_process(void)
 	DEBUG_EX_LOG("(half life scientist) everything..  seems to be in order");
 }
 
- 
+//#include "C:\Work\mediaserver\webrtc_native\video-sdk-samples\Samples\AppEncode\AppEncD3D11/AppEncD3D11.h"
+//C:\Work\mediaserver\webrtc_native\video-sdk-samples\Samples\x64.Release\AppEncD3D11.lib
 static inline bool init_hook(HANDLE thread_handle)
 { 
 	if (c_init())
 	{
-		
+		//int argc = 10;
+		//char argv0[] = "chensong";
+		//char argv1[] = "-i";
+		//char argv2[] = "D:/video/test.yuv";
+		//char argv3[] = "-s";
+		//char argv4[] = "1920x1080";
+		//char argv5[] = "-codec";
+		//char argv6[] = "h264";
+		//char argv7[] = "-fps";
+		//char argv8[] = "30";
+		//char argv9[] = "-gop";
+		//char argv10[] = "30";
+		//// chensong -i .\test.yuv -s 1920x1080 -codec h264 -fps 30 -gop 30
+		//char *argv[12] =
+		//{
+		//	argv0,
+		//	argv1,
+		//	argv2,
+		//	argv3,
+		//	argv4,
+		//	argv5,
+		//	argv6,
+		//	argv7,
+		//	argv8,
+		//	argv9,
+		//	argv10,
+		//};
+		//c_test_main(argc, argv);
 		c_startup();
 	}
 	init_dummy_window_thread();
@@ -250,78 +278,14 @@ void g_send_video_callback()
 	}
 
 	c_cpp_rtc_texture((void*)get_shared(), capture.width, capture.height);
-	//static ID3D11Device* cur_d3d11_ptr = NULL;
-	//static ID3D11Texture2D* cur_d3d11_texture_ptr = NULL;
-	//static ID3D11Texture2D* cur_d3d11_texture_read_ptr = NULL;
-	//static ID3D11DeviceContext* d3d11_context_ptr = NULL;
-	//if (!cur_d3d11_ptr)
-	//{
-	//	cur_d3d11_ptr = (ID3D11Device*)gl_shared_init_d3d11();;
-	//}
-	//if (!cur_d3d11_texture_ptr && cur_d3d11_ptr)
-	//{
-	//	//cur_d3d11_ptr->OpenSharedResource();//This,hResource,ReturnedInterface,ppResource
-	//	// ID3D11Device * This,
-	//		/* [annotation] */
-	//	//_In_  HANDLE hResource,
-	//	//	/* [annotation] */
-	//	//	_In_  REFIID ReturnedInterface,
-	//	//	/* [annotation] */
-	//	//	_COM_Outptr_opt_  void** ppResource
 
-	//	//cur_d3d11_ptr->lpVtbl->OpenSharedResource(cur_d3d11_ptr, (HANDLE)(uintptr_t)data.handle, __uuidof(ID3D11Texture2D), (void**)&cur_d3d11_texture_ptr);
-	//	//if (!open_shared_d3d11_texture(cur_d3d11_ptr,  (uintptr_t)get_shared(), cur_d3d11_texture_ptr))
-	//	//{
-	//	//	ERROR_EX_LOG("");
-	//	//	// error info 
-	//	//	return;
-	//	//}
-	//	HRESULT hr;
-	//	hr = cur_d3d11_ptr->OpenSharedResource((HANDLE)(uintptr_t)get_shared(), __uuidof(ID3D11Texture2D), (void**)&cur_d3d11_texture_ptr);
-	//	//ID3D11Device_OpenSharedResource();
-	//	if (FAILED(hr))
-	//	{
-	//		ERROR_EX_LOG("open_shared_d3d11_texture: open shared handler  failed  !!!");
-	//		return ;
-	//	}
-
-	//}
-	//{
-	//	SYSTEMTIME t1;
-	//	GetSystemTime(&t1);
-	//	DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
-	//}
-	//if (!cur_d3d11_texture_ptr || !cur_d3d11_ptr  )
-	//{
-	//	ERROR_EX_LOG("");
-	//	return;
-	//}
-	//{
-	//	SYSTEMTIME t1;
-	//	GetSystemTime(&t1);
-	//	DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
-	//}
 	//send_video_data();
-	
 	{
 		SYSTEMTIME t1;
 		GetSystemTime(&t1);
 		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
 	}
-	//d3d11_context_ptr = get_d3d11_device_context(cur_d3d11_ptr);
-	//
-	//if (!d3d11_context_ptr)
-	//{
-	//	// error info 
-	//	return;
-	//}
-	/*if (!out_gl_capture_ptr)
-	{
-		out_gl_capture_ptr = fopen(gl_capture_file_name, "wb+");
-	}
-
-	fDEBUG_EX_LOG(out_gl_capture_ptr, "[%s][%d]\n", __FUNCTION__, __LINE__);
-	fflush(out_gl_capture_ptr);*/
+	
 	
 }
 
@@ -342,12 +306,12 @@ static inline bool dxgi_hookable(void)
 static inline bool attempt_hook(void)
 {
 	
-	c_cpp_graphics_offsets((void **)&g_graphics_offsets);
+	/*c_cpp_graphics_offsets((void **)&g_graphics_offsets);
 	if (!g_graphics_offsets)
 	{
 		WARNING_EX_LOG("not graphics_offsets get failed !!!");
 		return false;
-	}
+	}*/
 	static bool gl_hooked = false;
 	static bool d3d9_hooked = false;
 	static bool d3d12_hooked = false;
@@ -366,7 +330,7 @@ static inline bool attempt_hook(void)
 	//DEBUG_EX_LOG("present1=0x%" PRIx32 "\n", g_graphics_offsets->dxgi.present1);
 	//DEBUG_EX_LOG("resize=0x%" PRIx32 "\n", g_graphics_offsets->dxgi.resize);
 	//DEBUG_EX_LOG("release=0x%" PRIx32 "\n", g_graphics_offsets->dxgi2.release);
-	if (!d3d9_hooked)
+	/*if (!d3d9_hooked)
 	{
 		if (!d3d9_hookable())
 		{
@@ -381,7 +345,7 @@ static inline bool attempt_hook(void)
 				return true;
 			}
 		}
-	}
+	}*/
 
 	if (!dxgi_hooked)
 	{

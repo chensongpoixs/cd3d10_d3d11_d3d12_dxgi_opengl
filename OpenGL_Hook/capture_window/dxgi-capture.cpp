@@ -303,40 +303,40 @@ hook_present1(IDXGISwapChain1 *swap, UINT sync_interval, UINT flags,
 		", expected_swap=0x%" PRIX64,
 		sync_interval, flags, swap, data.swap);
 	const bool capture = !test_draw && swap == data.swap && !!data.capture;
-	//if (capture) 
-	//{
-	//	IUnknown *backbuffer = get_dxgi_backbuffer(swap); 
-	//	if (backbuffer) 
-	//	{
-	//		DXGI_SWAP_CHAIN_DESC1 desc;
-	//		swap->GetDesc1(&desc);
-	//		data.capture(swap, backbuffer);
-	//		backbuffer->Release();
-	//	}
-	//}
+	if (capture) 
+	{
+		IUnknown *backbuffer = get_dxgi_backbuffer(swap); 
+		if (backbuffer) 
+		{
+			DXGI_SWAP_CHAIN_DESC1 desc;
+			swap->GetDesc1(&desc);
+			data.capture(swap, backbuffer);
+			backbuffer->Release();
+		}
+	}
 
 	dxgi_presenting = true;
 	const HRESULT hr = RealPresent1(swap, sync_interval, flags, params);
 	dxgi_presenting = false;
 	dxgi_present_attempted = true;
 
-	if (capture  )
-	{
-		/*if (resize_buffers_called) 
-		{
-			resize_buffers_called = false;
-		} 
-		else */
-		{
-			IUnknown *backbuffer = get_dxgi_backbuffer(swap);
+	//if (capture  )
+	//{
+	//	/*if (resize_buffers_called) 
+	//	{
+	//		resize_buffers_called = false;
+	//	} 
+	//	else */
+	//	{
+	//		IUnknown *backbuffer = get_dxgi_backbuffer(swap);
 
-			if (backbuffer) 
-			{
-				data.capture(swap, backbuffer);
-				backbuffer->Release();
-			}
-		}
-	}
+	//		if (backbuffer) 
+	//		{
+	//			data.capture(swap, backbuffer);
+	//			backbuffer->Release();
+	//		}
+	//	}
+	//}
 
 	return hr;
 }

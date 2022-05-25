@@ -47,6 +47,8 @@ static struct d3d11_data data = {};
 
 void d3d11_free(void)
 {
+	capture_count(0);
+	capture_init_shtex(NULL, 0, 0, 0, NULL);
 	if (data.scale_tex)
 		data.scale_tex->Release();
 	if (data.scale_resource)
@@ -87,30 +89,7 @@ void d3d11_free(void)
 	DEBUG_EX_LOG("----------------- d3d11 capture freed ----------------");
 }
 
-static bool create_d3d11_stage_surface(ID3D11Texture2D **tex)
-{
-	HRESULT hr;
-	DEBUG_EX_LOG("");
-	D3D11_TEXTURE2D_DESC desc = {};
-	desc.Width = data.cx;
-	desc.Height = data.cy;
-	desc.Format = data.format;
-	desc.MipLevels = 1;
-	desc.ArraySize = 1;
-	desc.SampleDesc.Count = 1;
-	desc.Usage = D3D11_USAGE_STAGING;
-	desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-
-	hr = data.device->CreateTexture2D(&desc, nullptr, tex);
-	if (FAILED(hr)) {
-		WARNING_EX_LOG("create_d3d11_stage_surface: failed to create texture",
-			hr);
-		return false;
-	}
-
-	return true;
-}
-
+ 
 static bool create_d3d11_tex(uint32_t cx, uint32_t cy, ID3D11Texture2D **tex,
 			     HANDLE *handle)
 {
@@ -121,12 +100,27 @@ static bool create_d3d11_tex(uint32_t cx, uint32_t cy, ID3D11Texture2D **tex,
 	desc.Height = cy;
 	desc.MipLevels = 1;
 	desc.ArraySize = 1;
-	desc.Format = DXGI_FORMAT_B8G8R8A8_TYPELESS;  /*apply_dxgi_format_typeless(
-		data.format, global_hook_info->allow_srgb_alias);*/
+	desc.Format = data.format; 
 	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	desc.SampleDesc.Count = 1;
 	desc.Usage = D3D11_USAGE_DEFAULT;
 	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+
+
+	////////////////////////
+	//D3D11_TEXTURE2D_DESC bufferTextureDesc = { 0 };
+	//bufferTextureDesc.Width =  cx;
+	//bufferTextureDesc.Height =  cy;
+	//bufferTextureDesc.MipLevels = 1;
+	//bufferTextureDesc.ArraySize = 1;
+
+	//bufferTextureDesc.SampleDesc.Count = 1;
+	//bufferTextureDesc.Format = data.format;// DXGI_FORMAT_B8G8R8A8_UNORM;
+	//bufferTextureDesc.BindFlags = 0;
+	//bufferTextureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	//bufferTextureDesc.MiscFlags = 0;
+	//bufferTextureDesc.Usage = D3D11_USAGE_STAGING;
+
 
 	hr = data.device->CreateTexture2D(&desc, nullptr, tex);
 	if (FAILED(hr)) {
@@ -165,12 +159,14 @@ static inline bool d3d11_init_format(IDXGISwapChain *swap, HWND &window)
 	HRESULT hr;
 	DEBUG_EX_LOG("");
 	hr = swap->GetDesc(&desc);
-	if (FAILED(hr)) {
+	if (FAILED(hr))
+	{
 		WARNING_EX_LOG("d3d11_init_format: swap->GetDesc failed", hr);
 		return false;
 	}
 
 	data.format = strip_dxgi_format_srgb(desc.BufferDesc.Format);
+	DEBUG_EX_LOG("data.format = %u][desc.BufferDesc.Width = %u]", data.format, desc.BufferDesc.Width);
 	data.multisampled = desc.SampleDesc.Count > 1;
 	window = desc.OutputWindow;
 	data.cx = desc.BufferDesc.Width;
@@ -233,12 +229,54 @@ static void d3d11_init(IDXGISwapChain *swap)
 
 static inline void d3d11_copy_texture(ID3D11Resource *dst, ID3D11Resource *src)
 {
-	DEBUG_EX_LOG("[data.multisampled = %u]", data.multisampled);
+	DEBUG_EX_LOG("[data.multisampled = %u][data.format = %u][width = %u][height = %u]", data.multisampled, data.format, data.cx, data.cy);
 	if (data.multisampled) {
 		data.context->ResolveSubresource(dst, 0, src, 0, data.format);
 	} else {
 		data.context->CopyResource(dst, src);
 	}
+
+
+	//D3D11_TEXTURE2D_DESC bufferTextureDesc = { 0 };
+	//bufferTextureDesc.Width = data.cx;
+	//bufferTextureDesc.Height = data.cy;
+	//bufferTextureDesc.MipLevels = 1;
+	//bufferTextureDesc.ArraySize = 1;
+	// 
+	//bufferTextureDesc.SampleDesc.Count = 1;
+	//bufferTextureDesc.Format = data.format;// DXGI_FORMAT_B8G8R8A8_UNORM;
+	//bufferTextureDesc.BindFlags = 0;
+	//bufferTextureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	//bufferTextureDesc.MiscFlags = 0;
+	//bufferTextureDesc.Usage = D3D11_USAGE_STAGING;
+	//ID3D11Texture2D* tex;
+	//HRESULT hr   = data.device->CreateTexture2D(&bufferTextureDesc, nullptr, &tex);;// CreateTexture2D(data.device, &bufferTextureDesc, NULL,
+	//	//&data.d3d11_tex_video);
+	//if (SUCCEEDED(hr))
+	//{
+	//	data.context->CopyResource(tex, src);
+	//	D3D11_MAPPED_SUBRESOURCE map;
+	//	UINT subResource = 0;
+	//	hr = data.context->Map(tex, 0, D3D11_MAP_READ, 0, &map);
+	//	static FILE* out_file_yuv_ptr = fopen("read_yuv.rgb", "wb+");
+	//	if (SUCCEEDED(hr))
+	//	{
+	//		DEBUG_EX_LOG("map ok  !!!");
+	//		if (out_file_yuv_ptr)
+	//		{
+	//			fwrite(map.pData, 1, data.cx * data.cy * 4, out_file_yuv_ptr);
+	//			fflush(out_file_yuv_ptr);
+	//		}
+	//	}
+	//	else
+	//	{
+	//		ERROR_EX_LOG("map failed !!!");
+	//	}
+	//	data.context->Unmap(tex, 0);
+	//	tex->Release();
+	//}
+
+
 	if (data.write_tick_count == 0)
 	{
 		capture_count(1);

@@ -44,6 +44,8 @@ static struct d3d10_data data = {};
 
 void d3d10_free(void)
 {
+	capture_count(0);
+	capture_init_shtex(NULL, 0, 0, 0, NULL);
 	if (data.scale_tex)
 	{
 		data.scale_tex->Release();
@@ -93,6 +95,7 @@ void d3d10_free(void)
 		{
 			data.texture->Release();
 		}
+		
 	}
 	else 
 	{
@@ -143,7 +146,7 @@ static bool create_d3d10_tex(uint32_t cx, uint32_t cy, ID3D10Texture2D **tex,
 	desc.BindFlags = D3D10_BIND_SHADER_RESOURCE;
 	desc.SampleDesc.Count = 1;
 	desc.Usage = D3D10_USAGE_DEFAULT;
-	desc.MiscFlags = D3D10_RESOURCE_MISC_SHARED;
+	desc.MiscFlags = D3D10_RESOURCE_MISC_SHARED_KEYEDMUTEX;
 
 	hr = data.device->CreateTexture2D(&desc, nullptr, tex);
 	if (FAILED(hr)) {

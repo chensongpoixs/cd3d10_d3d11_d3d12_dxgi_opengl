@@ -69,6 +69,8 @@ static void d3d9_free()
 {
 	//capture_free();
 	DEBUG_EX_LOG("");
+	capture_count(0);
+	capture_init_shtex(NULL, 0, 0, 0, NULL);
 	if (data.using_shtex) 
 	{
 		if (data.d3d11_tex)

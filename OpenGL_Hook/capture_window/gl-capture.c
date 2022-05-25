@@ -112,7 +112,8 @@ static inline bool gl_error(const char *func, const char *str)
 static void gl_free(void)
 {
 	 
-	 
+	capture_count(0);
+	capture_init_shtex(NULL, 0, 0, 0, NULL);
 
 	if (data.using_shtex) {
 		if (data.gl_dxobj)
@@ -194,12 +195,20 @@ bool hook_captuer_ok(void )
 
 
 
+struct video_data
+{
+	
+	uint32_t v;
+	void* data;
+};
 
-//void send_video_data()
-//{
-//	
-//	c_cpp_rtc_texture((void*)get_shared(), data.cx, data.cy);
-//}
+static struct video_data _temp_video_data = {0};
+void send_video_data()
+{
+	_temp_video_data.data = data.handle;
+
+	//c_cpp_rtc_texture((void*)&_temp_video_data, data.cx, data.cy);
+}
 static void init_nv_functions(void)
 {
 	 
@@ -407,7 +416,7 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 	desc.SampleDesc.Count = 1;
 	desc.Usage = D3D11_USAGE_DEFAULT;
 	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
-	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	desc.BindFlags = D3D10_RESOURCE_MISC_SHARED_KEYEDMUTEX  /*D3D11_BIND_SHADER_RESOURCE*/;
 
 	hr = ID3D11Device_CreateTexture2D(data.d3d11_device, &desc, NULL,
 					  &data.d3d11_tex);
@@ -556,6 +565,7 @@ static int gl_init(HDC hdc)
 
 	data.hdc = hdc;
 	data.format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	//D3DX_R8G8B8A8_UINT_to_UINT4();
 	data.using_shtex = true;
 
 	if (data.using_shtex) 
