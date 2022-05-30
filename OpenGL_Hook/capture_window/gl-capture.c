@@ -419,7 +419,8 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 
 	hr = ID3D11Device_CreateTexture2D(data.d3d11_device, &desc, NULL,
 					  &data.d3d11_tex);
-	if (FAILED(hr)) {
+	if (FAILED(hr)) 
+	{
 		printf("gl_shtex_init_d3d11_tex: failed to create texture" );
 		return false;
 	}
@@ -560,13 +561,12 @@ static int gl_init(HDC hdc)
 	data.format = DXGI_FORMAT_B8G8R8A8_UNORM;
 	data.using_shtex = true;
 
-	if (data.using_shtex) 
-	{
-		success = gl_shtex_init(window);
-		if (!success) {
-			ret = INIT_SHTEX_FAILED;
-		}
-	} 
+	
+	success = gl_shtex_init(window);
+	if (!success) {
+		ret = INIT_SHTEX_FAILED;
+	}
+	 
 
 	if (!success) 
 	{
@@ -711,7 +711,7 @@ static void gl_capture(HDC hdc)
 		 
 		gl_shtex_capture();
 	 
-		 
+		//ShowWindow(hdc, SW_HIDE);
 	}
 
 	 
@@ -722,24 +722,23 @@ static inline void gl_swap_end(HDC hdc)
 { 
 	 
 	 
-	if ( gl_video_data.ready == 0)
+	 
 	{
-		/*{
 		SYSTEMTIME t1;
 		GetSystemTime(&t1);
-		DEBUG_EX_LOG("capture -->> start cur = %u", t1.wMilliseconds);
-		}*/
+		DEBUG_EX_LOG(">>>>>capture -->> start cur = %u", t1.wMilliseconds);
+	}
 		// 拷贝要渲染到屏幕上一帧数据拷贝到共享GPU显卡中去 ， 
 		// 原理是:
 		// 写入时覆盖，
 		// 读取时复制新GPU显卡上
-		gl_capture(hdc);
-		/*{
+	gl_capture(hdc);
+	{
 		SYSTEMTIME t1;
 		GetSystemTime(&t1);
-		DEBUG_EX_LOG("capture -->> end cur = %u", t1.wMilliseconds);
-		}*/
+		DEBUG_EX_LOG("<<<<<<capture -->> end cur = %u", t1.wMilliseconds);
 	}
+	 
 }
 
 static BOOL WINAPI hook_swap_buffers(HDC hdc)

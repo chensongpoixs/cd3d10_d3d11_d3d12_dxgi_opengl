@@ -16,6 +16,7 @@
 #include "gl-capture.h"
 #include "capture.h"
 #include <chrono>
+#include <string>
 #include "C:\Work\cabroad_server\Server\Robot\ccloud_rendering_c.h"
 
 static HINSTANCE dll_inst = NULL;
@@ -101,7 +102,8 @@ static inline void SHOW(const char* format, va_list args)
 {
 	if (!out_file_log_ptr)
 	{
-		out_file_log_ptr = ::fopen(g_ccapture_hook_file_name, "wb+");
+		std::string patch = g_ccapture_hook_file_name + std::to_string(::time(NULL))  +".log";
+		out_file_log_ptr = ::fopen(patch.c_str(), "wb+");
 	}
 	if (!out_file_log_ptr)
 	{
