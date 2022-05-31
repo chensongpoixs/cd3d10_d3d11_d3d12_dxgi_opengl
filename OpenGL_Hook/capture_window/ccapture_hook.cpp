@@ -52,6 +52,27 @@ struct ccapture
 };
 static struct ccapture capture = {0};
 
+struct cframe_video
+{
+	unsigned char* capture_frame_ptr;
+	uint32_t width;
+	uint32_t height;
+	cframe_video()
+		:capture_frame_ptr(NULL)
+		, width(0)
+		, height(0)
+	{
+	}
+};
+
+struct d3d11_capture
+{
+	cframe_video* cur_frame_ptr;
+	cframe_video* old_frame_ptr;
+};
+
+static struct d3d11_capture   g_d3d11_capture_ptr = {0};
+
 bool  startup_capture_send_video_thread()
 {
 	
@@ -244,42 +265,22 @@ void* get_shared()
 
 void g_send_video_callback()
 {
-	DEBUG_EX_LOG("");
-	/*if (!data.d3d11_tex_video)
+	 
 	{
-		return;
-	}*/
-	static auto timestamp =
-		std::chrono::duration_cast<std::chrono::milliseconds>(
-			std::chrono::system_clock::now().time_since_epoch())
-		.count();
-	static size_t cnt = 0;
-
-	cnt++;
-	auto timestamp_curr = std::chrono::duration_cast<std::chrono::milliseconds>(
-		std::chrono::system_clock::now().time_since_epoch())
-		.count();
-	if (timestamp_curr - timestamp > 1000)
-	{
-		 
-		{
-			SYSTEMTIME t1;
-			GetSystemTime(&t1);
-			DEBUG_EX_LOG("cur = %u, fps = %u", t1.wMilliseconds, cnt);
-		}
-		cnt = 0;
-		timestamp = timestamp_curr;
+		SYSTEMTIME t1;
+		GetSystemTime(&t1);
+		DEBUG_EX_LOG("start send cur = %u", t1.wMilliseconds);
 	}
-	
-	if (!capture.handle || capture.width< 1 || capture.height < 1 || capture.count < 1)
+	if (g_d3d11_capture_ptr.cur_frame_ptr && g_d3d11_capture_ptr.cur_frame_ptr->capture_frame_ptr)
 	{
-		WARNING_EX_LOG("[capture.handle = %p][capture.width = %u][capture.height = %u][capture.count = %u]", capture.handle, capture.width, capture.height, capture.count);
-		return;
+		DEBUG_EX_LOG("send frame  ok !!!");
+		c_cpp_rtc_video(g_d3d11_capture_ptr.cur_frame_ptr->capture_frame_ptr, g_d3d11_capture_ptr.cur_frame_ptr->width, g_d3d11_capture_ptr.cur_frame_ptr->height);
 	}
-
-	c_cpp_rtc_texture((void*)get_shared(), capture.width, capture.height);
-
-	//send_video_data();
+	else
+	{
+		DEBUG_EX_LOG("send frame  failed  !!!");
+	}
+	 
 	{
 		SYSTEMTIME t1;
 		GetSystemTime(&t1);
@@ -306,12 +307,12 @@ static inline bool dxgi_hookable(void)
 static inline bool attempt_hook(void)
 {
 	
-	/*c_cpp_graphics_offsets((void **)&g_graphics_offsets);
+	c_cpp_graphics_offsets((void **)&g_graphics_offsets);
 	if (!g_graphics_offsets)
 	{
 		WARNING_EX_LOG("not graphics_offsets get failed !!!");
 		return false;
-	}*/
+	}
 	static bool gl_hooked = false;
 	static bool d3d9_hooked = false;
 	static bool d3d12_hooked = false;
@@ -363,7 +364,7 @@ static inline bool attempt_hook(void)
 			}
 		}
 	}
-	if ( !gl_hooked)
+	/*if ( !gl_hooked)
 	{
 
 		gl_hooked = hook_gl();
@@ -372,7 +373,7 @@ static inline bool attempt_hook(void)
 			return true;
 		}
 
-	}
+	}*/
 	return false;
 }
 
@@ -487,6 +488,53 @@ void capture_init_shtex(HWND window, uint32_t cx, uint32_t cy, uint32_t format, 
 	capture.handle =  handle;
 	capture.width = cx;
 	capture.height = cy;
+}
+
+void d3d11_capture_frame(unsigned char* rgba_ptr, uint32_t fmt, uint32_t width, uint32_t heigth)
+{
+	if (!g_d3d11_capture_ptr.old_frame_ptr)
+	{
+		g_d3d11_capture_ptr.old_frame_ptr = new cframe_video();
+		if (!g_d3d11_capture_ptr.old_frame_ptr)
+		{
+			WARNING_EX_LOG("alloc struct frame data failed !!!");
+			return;
+		}
+		g_d3d11_capture_ptr.old_frame_ptr->width=  width;
+		g_d3d11_capture_ptr.old_frame_ptr->height = heigth;
+		g_d3d11_capture_ptr.old_frame_ptr->capture_frame_ptr = new unsigned char[sizeof(unsigned char ) * width * heigth * 4];
+		if (!g_d3d11_capture_ptr.old_frame_ptr->capture_frame_ptr)
+		{
+			delete g_d3d11_capture_ptr.old_frame_ptr;
+			g_d3d11_capture_ptr.old_frame_ptr = NULL;
+			WARNING_EX_LOG("alloc failed   frame data failed !!!");
+			return;
+		}
+	}
+	else if (g_d3d11_capture_ptr.old_frame_ptr->width != width || heigth != g_d3d11_capture_ptr.old_frame_ptr->height)
+	{
+		if (g_d3d11_capture_ptr.old_frame_ptr->capture_frame_ptr)
+		{
+			delete[] g_d3d11_capture_ptr.old_frame_ptr->capture_frame_ptr;
+			g_d3d11_capture_ptr.old_frame_ptr->capture_frame_ptr = NULL;
+		}
+		g_d3d11_capture_ptr.old_frame_ptr->width = width;
+		g_d3d11_capture_ptr.old_frame_ptr->height = heigth;
+		g_d3d11_capture_ptr.old_frame_ptr->capture_frame_ptr = new unsigned char[sizeof(unsigned char) * width * heigth * 4];
+		if (!g_d3d11_capture_ptr.old_frame_ptr->capture_frame_ptr)
+		{
+			delete g_d3d11_capture_ptr.old_frame_ptr;
+			g_d3d11_capture_ptr.old_frame_ptr = NULL;
+			WARNING_EX_LOG("reset size alloc failed   frame data failed !!!");
+			return;
+		}
+	}
+	memcpy(g_d3d11_capture_ptr.old_frame_ptr->capture_frame_ptr, rgba_ptr, static_cast<size_t>(sizeof(unsigned char) * width * heigth * 4));
+	void* ptr = g_d3d11_capture_ptr.cur_frame_ptr;
+	g_d3d11_capture_ptr.cur_frame_ptr = g_d3d11_capture_ptr.old_frame_ptr;
+	g_d3d11_capture_ptr.old_frame_ptr = (struct cframe_video*)ptr;
+	DEBUG_EX_LOG("frame copy ok !!!");
+	//std::swap(g_d3d11_capture_ptr.cur_frame_ptr, g_d3d11_capture_ptr.old_frame_ptr);
 }
 
 struct graphics_offsets* g_graphics_offsets = NULL;

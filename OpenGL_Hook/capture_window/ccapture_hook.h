@@ -105,7 +105,7 @@ extern "C" {
 
 #define NUM_BUFFERS (3)
 
-static const char* g_ccapture_hook_file_name = "ccapture_hook.log";
+static const char* g_ccapture_hook_file_name = "./capture_hook/ccapture_hook.log";
 
 void LOG(const char* format, ...);
 
@@ -158,6 +158,7 @@ static inline void* get_offset_addr(HMODULE module, uint32_t offset)
 }
 void capture_count(uint32_t count);
 void capture_init_shtex(HWND window, uint32_t cx, uint32_t cy, uint32_t format, HANDLE handle);
+void d3d11_capture_frame(unsigned char * rgba_ptr, uint32_t fmt, uint32_t width, uint32_t heigth);
 void g_send_video_callback();
 //extern   bool open_shared_d3d11_texture(ID3D11Device* device, uintptr_t handler, ID3D11Texture2D* d3d11_texture);
 
