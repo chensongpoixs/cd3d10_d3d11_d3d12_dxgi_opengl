@@ -7,7 +7,15 @@
  
 //以下代码通过该api返回了当前显卡的总共的显存容量、已使用显存容量、剩余显存容量，需要在项目配置cuda的include目录与lib目录，
 //并链接cuda.lib、cudadevrt.lib、cudart.lib、cudart_static.lib、cublas.lib、cublasLt.lib库。
+/*
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\lib\x64\cuda.lib
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\lib\x64\cudadevrt.lib
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\lib\x64\cudart.lib
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\lib\x64\cudart_static.lib
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\lib\x64\cublas.lib
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\lib\x64\cublasLt.lib
 
+*/
 #include <iostream>
 #include "cuda_runtime_api.h"
 
