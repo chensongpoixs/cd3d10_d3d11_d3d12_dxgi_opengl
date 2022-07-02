@@ -10,6 +10,7 @@ purpose:	capture hook
 
 #ifndef _C_CAPTURE_HOOK_H_
 #define _C_CAPTURE_HOOK_H_
+#include <stdint.h>
 #ifdef __cplusplus
 extern "C" {
 #else
@@ -24,7 +25,8 @@ extern "C" {
 //一秒显示多少帧图片
 #define FRAME_SUM (1000/60)
 
-static const char* g_ccapture_hook_file_name = "./capture_hook_log/ccapture_hook";
+
+
 
 void LOG(const char* format, ...);
 
@@ -32,7 +34,9 @@ void LOG(const char* format, ...);
 #define DEBUG_EX_LOG(format, ...)   LOG("[%s][%d][debug]" format, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 #define ERROR_EX_LOG(format, ...)   LOG("[%s][%d][error]" format, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 
+extern uint32_t g_run;
 
+extern uint32_t g_gpu_index;
 extern char system_path[MAX_PATH];
 extern char process_name[MAX_PATH];
 static inline HMODULE load_system_library(const char* name)
@@ -60,7 +64,7 @@ static inline HMODULE get_system_module(const char* module)
 	strcat(base_path, module);
 	return GetModuleHandleA(base_path);
 }
-
+void g_set_gpu_index_callback(uint32_t gpu_index);
 void g_send_video_callback();
 //extern   bool open_shared_d3d11_texture(ID3D11Device* device, uintptr_t handler, ID3D11Texture2D* d3d11_texture);
 

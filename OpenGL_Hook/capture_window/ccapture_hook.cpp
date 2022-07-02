@@ -22,7 +22,9 @@
 static HINSTANCE dll_inst = NULL;
 static volatile bool stop_loop = false;
 static HANDLE capture_thread = NULL;
+uint32_t g_run ;
 
+uint32_t g_gpu_index;
 // 系统环境变量
 char system_path[MAX_PATH] = { 0 };
 // 当前可执行程序名称
@@ -34,6 +36,9 @@ HWND dummy_window = NULL;
 #pragma comment  (lib,"d3d11.lib")
 #pragma comment  (lib,"d3dcompiler.lib")
 #pragma comment  (lib,"dxgi.lib")//d3dcompiler.lib
+
+
+ 
 
 bool  startup_capture_send_video_thread()
 {
@@ -102,6 +107,7 @@ static inline void SHOW(const char* format, va_list args)
 {
 	if (!out_file_log_ptr)
 	{
+		static const char* g_ccapture_hook_file_name = "./capture_hook_log/ccapture_hook";
 		std::string patch = g_ccapture_hook_file_name + std::to_string(::time(NULL))  +".log";
 		out_file_log_ptr = ::fopen(patch.c_str(), "wb+");
 	}
@@ -169,7 +175,8 @@ static inline bool init_hook(HANDLE thread_handle)
 { 
 	if (c_init())
 	{
-		
+		g_run = 0;
+		c_set_set_gpu_index_callback(&g_set_gpu_index_callback);
 		c_startup();
 	}
 	init_dummy_window_thread();
@@ -191,7 +198,12 @@ bool open_shared_d3d11_texture(ID3D11Device* device, uintptr_t handler, ID3D11Te
 	}
 	return true;
 }
-
+void g_set_gpu_index_callback(uint32_t gpu_index)
+{
+	g_run = 10;
+	g_gpu_index = gpu_index;
+	DEBUG_EX_LOG("set gpu index callback --> gpu_index = %u", g_gpu_index);
+}
 void g_send_video_callback()
 {
 	//DEBUG_EX_LOG("");
@@ -345,10 +357,16 @@ static DWORD WINAPI main_capture_thread(HANDLE thread_handle)
 	// 1. 窗口事件检查
 	if (!init_hook(thread_handle)) 
 	{
-		printf(  "[%s][%d][OBS] Failed to init hook\n", __FUNCTION__, __LINE__);
+		ERROR_EX_LOG(  "[%s][%d][OBS] Failed to init hook\n", __FUNCTION__, __LINE__);
 		 
 		return 0;
 	}
+	while (g_run == 0)
+	{
+		Sleep(5);
+		DEBUG_EX_LOG("sleep [g_run = %d][g_gpu_index = %u] ...", g_run, g_gpu_index);
+	}
+	DEBUG_EX_LOG("[g_run = %d][g_gpu_index = %u]", g_run, g_gpu_index);
 	// 2. 开始抓取当前主程序的窗口
 	capture_loop();
 	return 0;
