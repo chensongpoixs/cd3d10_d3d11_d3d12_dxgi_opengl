@@ -34,6 +34,7 @@ purpose:	capture hook
 //d3dx11.lib
 //#pragma comment  (lib,"d3d11.lib")
 /* clang-format off */
+#define SHARED_BUFFER (2)
 
 static const GUID GUID_IDXGIFactory1 =
 {0x770aae78, 0xf26f, 0x4dba, {0xa8, 0x29, 0x25, 0x3c, 0x83, 0xd1, 0xb3, 0x87}};
@@ -67,43 +68,21 @@ struct gl_data {
 	GLuint fbo;
 	bool using_shtex;
 	bool shmem_fallback;
-
-
-
-
-
-	union
-	{
-		/* shared texture */
-		struct
-		{
-			struct shtex_data* shtex_info;
-			ID3D11Device* d3d11_device;
-			ID3D11DeviceContext* d3d11_context;
-			ID3D11Texture2D* d3d11_tex;
+	 
+		struct {
+			struct shtex_data *shtex_info;
+			ID3D11Device *d3d11_device;
+			ID3D11DeviceContext *d3d11_context;
+			ID3D11Texture2D *d3d11_tex;
 			ID3D11Texture2D* d3d11_tex_video;
-			IDXGISwapChain* dxgi_swap;
+			IDXGISwapChain *dxgi_swap;
 			HANDLE gl_device;
 			HANDLE gl_dxobj;
 			HANDLE handle;
 			HWND hwnd;
 			GLuint texture;
 		};
-		/* shared memory */
-		struct
-		{
-			struct shmem_data* shmem_info;
-			int cur_tex;
-			int copy_wait;
-			GLuint pbos[NUM_BUFFERS];
-			GLuint textures[NUM_BUFFERS];
-			bool texture_ready[NUM_BUFFERS];
-			bool texture_mapped[NUM_BUFFERS];
-		};
-	};
-	
-		
-	
+		uint8_t* shard_buffer[SHARED_BUFFER];
 		DWORD write_tick_count;
 		bool capture_init;
 };
@@ -163,28 +142,16 @@ static void gl_free(void)
 			DestroyWindow(data.hwnd);
 		
 	}
-	else
+	 
+	for (int i = 0; i < SHARED_BUFFER; ++i)
 	{
-		for (size_t i = 0; i < NUM_BUFFERS; i++)
+		if (data.shard_buffer[i])
 		{
-			if (data.pbos[i])
-			{
-				if (data.texture_mapped[i])
-				{
-					glBindBuffer(GL_PIXEL_PACK_BUFFER, data.pbos[i]);
-					glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-					glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-				}
-
-				glDeleteBuffers(1, &data.pbos[i]);
-			}
-
-			if (data.textures[i])
-			{
-				glDeleteTextures(1, &data.textures[i]);
-			}
+			free(data.shard_buffer[i]);
+			data.shard_buffer[i] = NULL;
 		}
 	}
+	 
 	if (data.fbo)
 	{
 		glDeleteFramebuffers(1, &data.fbo);
@@ -231,7 +198,7 @@ void* get_d3d11_device_context(void* cur_d3d11)
 
 bool hook_captuer_ok(void )
 {
-	if (data.write_tick_count == 0 || !data.handle)
+	if (data.write_tick_count == 0 || (!data.handle && !data.shard_buffer[0]))
 	{
 		return false;
 	}
@@ -248,8 +215,16 @@ void * get_shared()
 
 void send_video_data()
 {
+	if (0 != g_gpu_index)
+	{
+		c_cpp_rtc_video(data.shard_buffer[0], data.cx, data.cy);
+	}
+	else
+	{
+		c_cpp_rtc_texture((void*)get_shared(), data.cx, data.cy);
+		
+	}
 	
-	c_cpp_rtc_texture((void*)get_shared(), data.cx, data.cy);
 }
 static void init_nv_functions(void)
 {
@@ -451,7 +426,7 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 	IDXGIResource* dxgi_res;
 	HRESULT hr;
 
-	D3D11_TEXTURE2D_DESC desc = {0};
+	D3D11_TEXTURE2D_DESC desc = { 0 };
 	desc.Width = data.cx;
 	desc.Height = data.cy;
 	desc.MipLevels = 1;
@@ -459,16 +434,74 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 	desc.Format = data.format;
 	desc.SampleDesc.Count = 1;
 	desc.Usage = D3D11_USAGE_DEFAULT;
-	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
-	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-
-	hr = ID3D11Device_CreateTexture2D(data.d3d11_device, &desc, NULL, &data.d3d11_tex);
-	if (FAILED(hr)) 
+	if (0 != g_gpu_index)
 	{
-		ERROR_EX_LOG("gl_shtex_init_d3d11_tex: failed to create texture" );
+		desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+	}
+	else
+	{
+		desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
+	}
+	
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	hr = ID3D11Device_CreateTexture2D(data.d3d11_device, &desc, NULL, &data.d3d11_tex);
+	if (FAILED(hr))
+	{
+		ERROR_EX_LOG("gl_shtex_init_d3d11_tex: failed to create texture");
 		return false;
 	}
-	 
+	
+	if (0 != g_gpu_index)
+	{
+		// TODO@chensong 20220722 shard gpu 方案一 
+		D3D11_TEXTURE2D_DESC bufferTextureDesc = { 0 };
+		bufferTextureDesc.Width = data.cx;
+		bufferTextureDesc.Height = data.cy;
+		bufferTextureDesc.MipLevels = 1;
+		bufferTextureDesc.ArraySize = 1;
+		 
+		bufferTextureDesc.SampleDesc.Count = 1;
+		  
+		bufferTextureDesc.Format = data.format;
+		bufferTextureDesc.BindFlags = 0;
+		bufferTextureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		bufferTextureDesc.MiscFlags = 0;
+		bufferTextureDesc.Usage = D3D11_USAGE_STAGING;
+		 
+		 
+
+		hr = ID3D11Device_CreateTexture2D(data.d3d11_device, &bufferTextureDesc, NULL, &data.d3d11_tex_video);
+		if (FAILED(hr))
+		{
+			 
+			ERROR_EX_LOG("create shared mem texture 2D failed !!!");
+			return false;
+		}
+ 
+		 
+
+		for (int i = 0; i < SHARED_BUFFER; ++i)
+		{
+		  data.shard_buffer[i] = 	(uint8_t *)malloc(sizeof(uint8_t) * (data.cx * data.cy * 4));
+		  if (!data.shard_buffer[i])
+		  {
+			  ERROR_EX_LOG(" shard buffer alloc failed ( i = %u)!!!", i);
+			  return false;
+		  }
+		}
+
+		DEBUG_EX_LOG("not use shared gpu index = %u", g_gpu_index);
+		return true;
+	 }
+	else
+	{
+		DEBUG_EX_LOG("use shared gpu ");
+	}
+
+
+	
+
+	
 	//////////////////////////////////////////////////////////////////////////////////////////
 	// 设置D3D11的同享GPU模式  
 	hr = ID3D11Device_QueryInterface(data.d3d11_tex, &GUID_IDXGIResource, (void**)&dxgi_res);
@@ -603,29 +636,20 @@ static int gl_init(HDC hdc)
 
 	data.hdc = hdc;
 	data.format = DXGI_FORMAT_B8G8R8A8_UNORM;
-	data.using_shtex = 0 == g_gpu_index;
+	data.using_shtex = true;
 
-	if (data.using_shtex)
-	{
-		success = gl_shtex_init(window);
-		if (!success)
-		{
-			ret = INIT_SHTEX_FAILED;
-		}
-	}
-	else
-	{
-		success = gl_shmem_init(window);
-	}
 	
+	success = gl_shtex_init(window);
+	if (!success) {
+		ret = INIT_SHTEX_FAILED;
+	}
 	 
 
 	if (!success) 
 	{
 		gl_free();
 	}
-	else 
-	{
+	else {
 		ret = INIT_SUCCESS;
 	}
 
@@ -669,7 +693,7 @@ static void gl_copy_backbuffer(GLuint dst)
 }
  
 
-
+ 
  
 
  static void gl_shtex_capture(void)
@@ -703,97 +727,63 @@ static void gl_copy_backbuffer(GLuint dst)
 
 	 IDXGISwapChain_Present(data.dxgi_swap, 0, 0);
 	
+	 
+
+	 if (0 != g_gpu_index)
+	 {
+		 {
+			 SYSTEMTIME t1;
+			 GetSystemTime(&t1);
+			 DEBUG_EX_LOG("cpu --> mem cur = %u", t1.wMilliseconds);
+		 }
+
+		 ID3D11DeviceContext_CopyResource(data.d3d11_context, (ID3D11Resource*)data.d3d11_tex_video, (ID3D11Resource*)data.d3d11_tex);
+
+		 HRESULT hr;
+		 D3D11_MAPPED_SUBRESOURCE mapd;
+		 UINT subResource = 0;
+		 //D3D11CalcSubresource(0, 0, 1);
+		 hr = ID3D11DeviceContext_Map(data.d3d11_context, (ID3D11Resource*)data.d3d11_tex_video, subResource, D3D11_MAP_READ, 0, &mapd);
+		 if (FAILED(hr))
+		 {
+			 ERROR_EX_LOG("[%s][%d][ID3D11DeviceContext_Map][ERROR]\n", __FUNCTION__, __LINE__);
+
+			 return;
+		 }
+		 size_t rgba_size = data.cx * data.cy * 4;
+		 
+		 // filp
+		
+		 if (data.shard_buffer[1])
+		 {
+			 
+			
+			 memcpy(data.shard_buffer[1], mapd.pData, rgba_size);
+			 uint8_t* temp_ptr = data.shard_buffer[0];
+			 data.shard_buffer[0] = data.shard_buffer[1];
+			 data.shard_buffer[1] = temp_ptr;
+		 }
+
+		 ID3D11DeviceContext_Unmap(data.d3d11_context, (ID3D11Resource*)data.d3d11_tex_video, subResource);
+		 {
+			 SYSTEMTIME t1;
+			 GetSystemTime(&t1);
+			 DEBUG_EX_LOG("cpu --> mem end  cur = %u", t1.wMilliseconds);
+		 }
+	}
 	 if (data.write_tick_count == 0)
 	 {
 
 		 c_set_send_video_callback(&g_send_video_callback);
 	 }
 	 data.write_tick_count = GetTickCount64();
+
+
 	 //++read_cpu;
 	 return;
 	
  }
-
-
- static void gl_shmem_capture_copy(int i)
- {
-	 if (data.texture_ready[i])
-	 {
-		 GLvoid* buffer;
-
-		 data.texture_ready[i] = false;
-
-		 glBindBuffer(GL_PIXEL_PACK_BUFFER, data.pbos[i]);
-		 if (gl_error("gl_shmem_capture_queue_copy",
-			 "failed to bind pbo"))
-		 {
-			 return;
-		 }
-
-		 buffer = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
-		 if (buffer)
-		 {
-			 data.texture_mapped[i] = true;
-			 // TODO@chensong 20220722 copy mem copy --> gpu 
-			 shmem_copy_data(i, buffer);
-		 }
-	 }
- }
-
- static void gl_shmem_capture(void)
- {
-	 int next_tex;
-	 GLint last_fbo;
-	 GLint last_tex;
-	 GLint last_pbo;
-
-	 glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &last_fbo);
-	 if (gl_error("gl_shmem_capture", "failed to get last fbo"))
-	 {
-		 return;
-	 }
-
-	 glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_tex);
-	 if (gl_error("gl_shmem_capture", "failed to get last texture"))
-	 {
-		 return;
-	 }
-
-	 glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &last_pbo);
-	 if (gl_error("gl_shmem_capture", "failed to get last pbo"))
-	 {
-		 return;
-	 }
-
-	 next_tex = (data.cur_tex + 1) % NUM_BUFFERS;
-	 gl_shmem_capture_copy(next_tex);
-
-	 if (data.copy_wait < NUM_BUFFERS - 1)
-	 {
-		 data.copy_wait++;
-	 }
-	 else
-	 {
-		 /*if (shmem_texture_data_lock(data.cur_tex))
-		 {
-			 glBindBuffer(GL_PIXEL_PACK_BUFFER,
-				 data.pbos[data.cur_tex]);
-			 glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-			 data.texture_mapped[data.cur_tex] = false;
-			 shmem_texture_data_unlock(data.cur_tex);
-		 }*/
-
-		 gl_copy_backbuffer(data.textures[data.cur_tex]);
-		 gl_shmem_capture_stage(data.pbos[data.cur_tex], data.textures[data.cur_tex]);
-		 data.texture_ready[data.cur_tex] = true;
-	 }
-
-	 glBindTexture(GL_TEXTURE_2D, last_tex);
-	 glBindBuffer(GL_PIXEL_PACK_BUFFER, last_pbo);
-	 glBindFramebuffer(GL_DRAW_FRAMEBUFFER, last_fbo);
-
-	 data.cur_tex = next_tex;
- }
+ 
 static void gl_capture(HDC hdc)
 { 
 	static bool critical_failure = false;
@@ -841,14 +831,8 @@ static void gl_capture(HDC hdc)
 			 
 			return;
 		}
-		if (data.using_shtex)
-		{
-			gl_shtex_capture();
-		 }
-		else
-		{
-			gl_shmem_capture();
-		}
+		 
+		gl_shtex_capture();
 	 
 		//ShowWindow(hdc, SW_HIDE);
 	}
@@ -1081,96 +1065,8 @@ static bool gl_register_window(void)
 	//testmain();
 	return success;
 }
- static inline bool gl_shmem_init_data(size_t idx, size_t size)
- {
-	 glBindBuffer(GL_PIXEL_PACK_BUFFER, data.pbos[idx]);
-	 if (gl_error("gl_shmem_init_data", "failed to bind pbo"))
-	 {
-		 return false;
-	 }
 
-	 glBufferData(GL_PIXEL_PACK_BUFFER, size, 0, GL_STREAM_READ);
-	 if (gl_error("gl_shmem_init_data", "failed to set pbo data"))
-	 {
-		 return false;
-	 }
 
-	 glBindTexture(GL_TEXTURE_2D, data.textures[idx]);
-	 if (gl_error("gl_shmem_init_data", "failed to set bind texture"))
-	 {
-		 return false;
-	 }
-
-	 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, data.cx, data.cy, 0, GL_BGRA,
-		 GL_UNSIGNED_BYTE, NULL);
-	 if (gl_error("gl_shmem_init_data", "failed to set texture data"))
-	 {
-		 return false;
-	 }
-
-	 return true;
- }
- static inline bool gl_shmem_init_buffers(void)
- {
-	 uint32_t size = data.cx * data.cy * 4;
-	 GLint last_pbo;
-	 GLint last_tex;
-
-	 glGenBuffers(NUM_BUFFERS, data.pbos);
-	 if (gl_error("gl_shmem_init_buffers", "failed to generate buffers"))
-	 {
-		 return false;
-	 }
-
-	 glGenTextures(NUM_BUFFERS, data.textures);
-	 if (gl_error("gl_shmem_init_buffers", "failed to generate textures"))
-	 {
-		 return false;
-	 }
-
-	 glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &last_pbo);
-	 if (gl_error("gl_shmem_init_buffers",
-		 "failed to save pixel pack buffer"))
-	 {
-		 return false;
-	 }
-
-	 glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_tex);
-	 if (gl_error("gl_shmem_init_buffers", "failed to save texture"))
-	 {
-		 return false;
-	 }
-
-	 for (size_t i = 0; i < NUM_BUFFERS; i++)
-	 {
-		 if (!gl_shmem_init_data(i, size))
-		 {
-			 return false;
-		 }
-	 }
-
-	 glBindBuffer(GL_PIXEL_PACK_BUFFER, last_pbo);
-	 glBindTexture(GL_TEXTURE_2D, last_tex);
-	 return true;
- }
  
- static bool gl_shmem_init(HWND window)
- {
-	 if (!gl_shmem_init_buffers())
-	 {
-		 return false;
-	 }
-	 if (!gl_init_fbo())
-	 {
-		 return false;
-	 }
-	 /*if (!capture_init_shmem(&data.shmem_info, window, data.cx, data.cy,
-		 data.cx * 4, data.format, true))
-	 {
-		 return false;
-	 }*/
 
-	 DEBUG_EX_LOG("gl memory capture successful");
-	 return true;
- }
  
