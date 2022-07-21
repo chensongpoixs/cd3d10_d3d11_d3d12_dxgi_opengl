@@ -15,9 +15,9 @@
 #include <string>
 #pragma comment( lib, "OpenGL32.lib" )
 #pragma comment( lib, "glu32.lib" )
-using namespace std;
+//using namespace std;
 
-BOOL SaveBmp(HBITMAP hBitmap, string FileName)
+BOOL SaveBmp(HBITMAP hBitmap, std::string FileName)
 {
 	HDC hDC;
 	//当前分辨率下每象素所占字节数
@@ -41,10 +41,22 @@ BOOL SaveBmp(HBITMAP hBitmap, string FileName)
 	hDC = CreateDC("DISPLAY", NULL, NULL, NULL);
 	iBits = GetDeviceCaps(hDC, BITSPIXEL) * GetDeviceCaps(hDC, PLANES);
 	DeleteDC(hDC);
-	if (iBits <= 1) wBitCount = 1;
-	else if (iBits <= 4) wBitCount = 4;
-	else if (iBits <= 8) wBitCount = 8;
-	else wBitCount = 24;
+	if (iBits <= 1)
+	{
+		wBitCount = 1;
+	}
+	else if (iBits <= 4)
+	{
+		wBitCount = 4;
+	}
+	else if (iBits <= 8)
+	{
+		wBitCount = 8;
+	}
+	else
+	{
+		wBitCount = 24;
+	}
 
 	GetObject(hBitmap, sizeof(Bitmap), (LPSTR)&Bitmap);
 	bi.biSize = sizeof(BITMAPINFOHEADER);
@@ -115,19 +127,55 @@ BOOL SaveBmp(HBITMAP hBitmap, string FileName)
 
 void mGLRender()
 {
-	glClearColor(0.9f, 0.9f, 0.3f, 1.0f);
+	//1. 表示清除颜色设为黄色
+	glClearColor(0.9f, 0.9f, 0.3f, 1.0f); 
+	//2. 表示实际完成了把整个窗口清除为黑色的任务，glClear（）的唯一参数表示需要被清除的缓冲区
+	/*
+	参数选择：
+	GL_COLOR_BUFFER_BIT:    当前可写的颜色缓冲
+      GL_DEPTH_BUFFER_BIT:    深度缓冲
+      GL_ACCUM_BUFFER_BIT:   累积缓冲
+　　GL_STENCIL_BUFFER_BIT: 模板缓冲
+	*/
 	glClear(GL_COLOR_BUFFER_BIT);
+	
+	//  3. 指定哪一个矩阵堆栈是下一个矩阵操作的目标,可选值:
+	//　GL_MODELVIEW,对模型视图矩阵堆栈应用随后的矩阵操作。可以在执行此命令后，输出自己的物体图形了。
+	//  GL_PROJECTION, 对投影矩阵堆栈应用随后的矩阵操作。可以在执行此命令后，为我们的场景增加透视。
+	//	GL_TEXTURE, 对纹理矩阵堆栈应用随后的矩阵操作。可以在执行此命令后，为我们的图形增加纹理贴图。
 	glMatrixMode(GL_PROJECTION);
-	//gluPerspective(30.0, 1.0, 1.0, 10.0);
+	// 4. 设置视角的函数
+	gluPerspective(30.0, 1.0, 1.0, 10.0);
 	glMatrixMode(GL_MODELVIEW);
-	//gluLookAt(0, 0, -5, 0, 0, 0, 0, 1, 0);
+	// 5. 设置视角的方向函数 
+	gluLookAt(0, 0, -5, 0, 0, 0, 0, 1, 0);
+
+	// 6. 
+	/*
+	在glBegin()和glEnd()之间可调用的函数
+函数 函数意义
+glVertex*() 设置顶点坐标
+glColor*() 设置当前颜色
+glIndex*() 设置当前颜色表
+glNormal*() 设置法向坐标
+glEvalCoord*() 产生坐标
+glCallList(),glCallLists() 执行显示列表
+glTexCoord*() 设置纹理坐标
+glEdgeFlag*() 控制边界绘制
+glMaterial*() 设置材质
+	*/
 	glBegin(GL_TRIANGLES);
+	// 6.1 设置当前颜色
 	glColor3d(1, 0, 0);
+	// 6.2 设置顶点坐标
 	glVertex3d(0, 1, 0);
+	////////
 	glColor3d(0, 1, 0);
 	glVertex3d(-1, -1, 0);
-	glColor3d(0, 0, 1);
-	glVertex3d(1, -1, 0);
+	//
+	//glColor3d(0, 0, 1);
+	//glVertex3d(1, -1, 0);
+	//
 	glEnd();
 	glFlush(); // remember to flush GL output!
 }
@@ -139,7 +187,10 @@ int main(int argc, char* argv[])
 
 	// Create a memory DC compatible with the screen
 	HDC hdc = CreateCompatibleDC(0);
-	if (hdc == 0) cout << "Could not create memory device context";
+	if (hdc == 0)
+	{
+		std::cout << "Could not create memory device context" << std::endl;;
+	}
 
 	// Create a bitmap compatible with the DC
 	// must use CreateDIBSection(), and this means all pixel ops must be synchronised
@@ -151,14 +202,20 @@ int main(int argc, char* argv[])
 	DWORD *pbits; // pointer to bitmap bits
 	HBITMAP hbm = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, (void **)&pbits,
 		0, 0);
-	if (hbm == 0) cout << "Could not create bitmap";
+	if (hbm == 0)
+	{
+		std::cout << "Could not create bitmap" << std::endl;
+	}
 
 	//HDC hdcScreen = GetDC(0);
 	//HBITMAP hbm = CreateCompatibleBitmap(hdcScreen,WIDTH,HEIGHT);
 
 	// Select the bitmap into the DC
 	HGDIOBJ r = SelectObject(hdc, hbm);
-	if (r == 0) cout << "Could not select bitmap into DC";
+	if (r == 0)
+	{
+		std::cout << "Could not select bitmap into DC" << std::endl;;
+	}
 
 	// Choose the pixel format
 	PIXELFORMATDESCRIPTOR pfd = {
@@ -181,16 +238,25 @@ int main(int argc, char* argv[])
 					0 // No damage mask
 	};
 	int pfid = ChoosePixelFormat(hdc, &pfd);
-	if (pfid == 0) cout << "Pixel format selection failed";
+	if (pfid == 0)
+	{
+		std::cout << "Pixel format selection failed" << std::endl;;
+	}
 
 	// Set the pixel format
 	// - must be done *after* the bitmap is selected into DC
 	BOOL b = SetPixelFormat(hdc, pfid, &pfd);
-	if (!b) cout << "Pixel format set failed";
+	if (!b)
+	{
+		std::cout << "Pixel format set failed" << std::endl;;
+	}
 
 	// Create the OpenGL resource context (RC) and make it current to the thread
 	HGLRC hglrc = wglCreateContext(hdc);
-	if (hglrc == 0) cout << "OpenGL resource context creation failed";
+	if (hglrc == 0)
+	{
+		std::cout << "OpenGL resource context creation failed" << std::endl;;
+	}
 	wglMakeCurrent(hdc, hglrc);
 
 	// Draw using GL - remember to sync with GdiFlush()
