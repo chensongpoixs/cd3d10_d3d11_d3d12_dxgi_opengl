@@ -5,7 +5,8 @@
 #include <stdio.h>
 #include <cuda.h>
 #include "drvapi_error_string.h"
-
+#include <driver_types.h>
+#include <cuda_runtime_api.h>
 /* CUDA error check macro */
 #define MY_CUDA_CHECK(res, text)                                        \
   if ((res) != CUDA_SUCCESS) {                                          \
@@ -42,6 +43,8 @@ int main()
       /* search compute capability of GPU No.i */
       int major=0, minor=0;
       res = cuDeviceComputeCapability(&major, &minor, dev); // -·ñ¶¨sdl
+      struct cudaDeviceProp prop;
+      cudaGetDeviceProperties(&prop, i);
       MY_CUDA_CHECK(res, "cuDeviceComputeCapability()");
       
       printf("GPU[%d] : actual compute capability is : %d%d\n", i, major, minor);
