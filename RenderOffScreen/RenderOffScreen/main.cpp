@@ -152,17 +152,17 @@ void mGLRender()
 
 	// 6. 
 	/*
-	在glBegin()和glEnd()之间可调用的函数
-函数 函数意义
-glVertex*() 设置顶点坐标
-glColor*() 设置当前颜色
-glIndex*() 设置当前颜色表
-glNormal*() 设置法向坐标
-glEvalCoord*() 产生坐标
-glCallList(),glCallLists() 执行显示列表
-glTexCoord*() 设置纹理坐标
-glEdgeFlag*() 控制边界绘制
-glMaterial*() 设置材质
+		在glBegin()和glEnd()之间可调用的函数
+		函数 函数意义
+		glVertex*() 设置顶点坐标
+		glColor*() 设置当前颜色
+		glIndex*() 设置当前颜色表
+		glNormal*() 设置法向坐标
+		glEvalCoord*() 产生坐标
+		glCallList(),glCallLists() 执行显示列表
+		glTexCoord*() 设置纹理坐标
+		glEdgeFlag*() 控制边界绘制
+		glMaterial*() 设置材质
 	*/
 	glBegin(GL_TRIANGLES);
 	// 6.1 设置当前颜色
@@ -173,8 +173,8 @@ glMaterial*() 设置材质
 	glColor3d(0, 1, 0);
 	glVertex3d(-1, -1, 0);
 	//
-	//glColor3d(0, 0, 1);
-	//glVertex3d(1, -1, 0);
+	glColor3d(0, 0, 1);
+	glVertex3d(1, -1, 0);
 	//
 	glEnd();
 	glFlush(); // remember to flush GL output!

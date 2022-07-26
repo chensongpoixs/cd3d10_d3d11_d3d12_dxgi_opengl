@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RenderOffScreen", "RenderOf
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RenderOffScreen_demo2", "RenderOffScreen_demo2\RenderOffScreen_demo2.vcxproj", "{70A61AE4-F29B-43E8-911A-A04819139739}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "opengl_demo", "opengl_demo\opengl_demo.vcxproj", "{D1E55383-4075-4DC2-A67B-68F132EC7D08}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{70A61AE4-F29B-43E8-911A-A04819139739}.Release|x64.Build.0 = Release|x64
 		{70A61AE4-F29B-43E8-911A-A04819139739}.Release|x86.ActiveCfg = Release|Win32
 		{70A61AE4-F29B-43E8-911A-A04819139739}.Release|x86.Build.0 = Release|Win32
+		{D1E55383-4075-4DC2-A67B-68F132EC7D08}.Debug|x64.ActiveCfg = Debug|x64
+		{D1E55383-4075-4DC2-A67B-68F132EC7D08}.Debug|x64.Build.0 = Debug|x64
+		{D1E55383-4075-4DC2-A67B-68F132EC7D08}.Debug|x86.ActiveCfg = Debug|Win32
+		{D1E55383-4075-4DC2-A67B-68F132EC7D08}.Debug|x86.Build.0 = Debug|Win32
+		{D1E55383-4075-4DC2-A67B-68F132EC7D08}.Release|x64.ActiveCfg = Release|x64
+		{D1E55383-4075-4DC2-A67B-68F132EC7D08}.Release|x64.Build.0 = Release|x64
+		{D1E55383-4075-4DC2-A67B-68F132EC7D08}.Release|x86.ActiveCfg = Release|Win32
+		{D1E55383-4075-4DC2-A67B-68F132EC7D08}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
