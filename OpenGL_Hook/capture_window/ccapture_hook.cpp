@@ -97,18 +97,11 @@ static DWORD WINAPI dummy_window_thread(LPVOID *unused)
 	(void)unused;
 	return 0;
 }
-static FILE* out_file_log_ptr = NULL;
+static std::string patch = g_ccapture_hook_file_name + std::to_string(::time(NULL)) + ".log";
+static FILE* out_file_log_ptr = ::fopen(patch.c_str(), "wb+");;
 static inline void SHOW(const char* format, va_list args)
 {
-	if (!out_file_log_ptr)
-	{
-		std::string patch = g_ccapture_hook_file_name + std::to_string(::time(NULL))  +".log";
-		out_file_log_ptr = ::fopen(patch.c_str(), "wb+");
-	}
-	if (!out_file_log_ptr)
-	{
-		return;
-	}
+	
 	char message[1024] = {0};
 
 	int num = _vsprintf_p(message, 1024, format, args);
@@ -120,7 +113,10 @@ static inline void SHOW(const char* format, va_list args)
 }
 void LOG(const char* format, ...)
 {
-	
+	if (!out_file_log_ptr)
+	{
+		return;
+	}
 	
 		va_list args;
 		va_start(args, format);
