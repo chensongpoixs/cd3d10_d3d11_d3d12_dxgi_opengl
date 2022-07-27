@@ -20,4 +20,11 @@
 ### 1、 OpenGL上Hook使用
 
 
+
+
+
+## 三、win上注入两种方法 
+
+injector_demo
+
   
