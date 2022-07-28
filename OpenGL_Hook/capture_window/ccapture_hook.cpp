@@ -356,14 +356,28 @@ static DWORD WINAPI main_capture_thread(HANDLE thread_handle)
 /// <param name="reason"></param>
 /// <param name="unused1"></param>
 /// <returns></returns>
-BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, LPVOID unused1)
+static FILE* out_capture_log_ptr = NULL;
+__declspec(dllexport)
+BOOL APIENTRY DllMain(HINSTANCE hinst, DWORD reason, LPVOID unused1)
 {
 	
-
-	 
-	if (reason == DLL_PROCESS_ATTACH) {
+	if (!out_capture_log_ptr)
+	{
+		out_capture_log_ptr = ::fopen("./capture_chensong.log", "wb+");
+	}
+	if (out_capture_log_ptr)
+	{
+		::fprintf(out_capture_log_ptr, "[%s][%s][%d]\n", __FILE__, __FUNCTION__, __LINE__);
+		::fflush(out_capture_log_ptr);
+	}
+	if (reason == DLL_PROCESS_ATTACH) 
+	{
 		wchar_t name[MAX_PATH];
-
+		if (out_capture_log_ptr)
+		{
+			::fprintf(out_capture_log_ptr, "[%s][%s][%d]DLL_PROCESS_ATTACH\n", __FILE__, __FUNCTION__, __LINE__);
+			::fflush(out_capture_log_ptr);
+		}
 		dll_inst = hinst;
 
 
@@ -410,10 +424,18 @@ BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, LPVOID unused1)
 			CloseHandle(capture_thread);
 			 
 		}
-
+		if (out_capture_log_ptr)
+		{
+			::fprintf(out_capture_log_ptr, "[%s][%s][%d] DLL_PROCESS_ATTACH\n", __FILE__, __FUNCTION__, __LINE__);
+			::fflush(out_capture_log_ptr);
+		}
 		//free_hook();
 	}
-
+	if (out_capture_log_ptr)
+	{
+		::fprintf(out_capture_log_ptr, "[%s][%s][%d]\n", __FILE__, __FUNCTION__, __LINE__);
+		::fflush(out_capture_log_ptr);
+	}
 	(void)unused1;
 	return true;
 }
