@@ -5,7 +5,7 @@
 //#include "graphics-hook.h"
 #include "ccapture_hook.h"
 #include <iostream>
-//#include "C:\Work\cabroad_server\Server\Robot\ccloud_rendering_c.h"
+#include "C:\Work\cabroad_server\Server\Robot\ccloud_rendering_c.h"
 struct d3d11_data {
 	ID3D11Device *device;         /* do not release */
 	ID3D11DeviceContext *context; /* do not release */
