@@ -55,10 +55,12 @@ static struct ccapture capture = {0};
 struct cframe_video
 {
 	unsigned char* capture_frame_ptr;
+	uint32_t fmt;
 	uint32_t width;
 	uint32_t height;
 	cframe_video()
 		:capture_frame_ptr(NULL)
+		, fmt(0)
 		, width(0)
 		, height(0)
 	{
@@ -135,17 +137,11 @@ static DWORD WINAPI dummy_window_thread(LPVOID *unused)
 	(void)unused;
 	return 0;
 }
-static FILE* out_file_log_ptr = NULL;
+static FILE* out_file_log_ptr = ::fopen(g_ccapture_hook_file_name, "wb+");;
 static inline void SHOW(const char* format, va_list args)
 {
-	if (!out_file_log_ptr)
-	{
-		out_file_log_ptr = ::fopen(g_ccapture_hook_file_name, "wb+");
-	}
-	if (!out_file_log_ptr)
-	{
-		return;
-	}
+	 
+	
 	char message[1024] = {0};
 
 	int num = _vsprintf_p(message, 1024, format, args);
@@ -157,7 +153,10 @@ static inline void SHOW(const char* format, va_list args)
 }
 void LOG(const char* format, ...)
 {
-	
+	if (!out_file_log_ptr)
+	{
+		return;
+	}
 	
 		va_list args;
 		va_start(args, format);
@@ -190,8 +189,7 @@ static inline void log_current_process(void)
 		MAX_PATH);
 	if (len > 0) {
 		process_name[len] = 0;
-		DEBUG_EX_LOG("capture_hook.dll loaded against process: %s",
-			process_name);
+		DEBUG_EX_LOG("capture_hook.dll loaded against process: %s", process_name);
 		 
 	}
 	else {
@@ -206,35 +204,7 @@ static inline void log_current_process(void)
 static inline bool init_hook(HANDLE thread_handle)
 { 
 	if (c_init())
-	{
-		//int argc = 10;
-		//char argv0[] = "chensong";
-		//char argv1[] = "-i";
-		//char argv2[] = "D:/video/test.yuv";
-		//char argv3[] = "-s";
-		//char argv4[] = "1920x1080";
-		//char argv5[] = "-codec";
-		//char argv6[] = "h264";
-		//char argv7[] = "-fps";
-		//char argv8[] = "30";
-		//char argv9[] = "-gop";
-		//char argv10[] = "30";
-		//// chensong -i .\test.yuv -s 1920x1080 -codec h264 -fps 30 -gop 30
-		//char *argv[12] =
-		//{
-		//	argv0,
-		//	argv1,
-		//	argv2,
-		//	argv3,
-		//	argv4,
-		//	argv5,
-		//	argv6,
-		//	argv7,
-		//	argv8,
-		//	argv9,
-		//	argv10,
-		//};
-		//c_test_main(argc, argv);
+	{ 
 		c_startup();
 	}
 	init_dummy_window_thread();
@@ -552,6 +522,7 @@ void d3d11_capture_frame(unsigned char* rgba_ptr, uint32_t fmt, uint32_t width, 
 			return;
 		}
 	}
+	g_d3d11_capture_ptr.old_frame_ptr->fmt = fmt;
 	memcpy(g_d3d11_capture_ptr.old_frame_ptr->capture_frame_ptr, rgba_ptr, static_cast<size_t>(sizeof(unsigned char) * width * heigth * 4));
 	void* ptr = g_d3d11_capture_ptr.cur_frame_ptr;
 	g_d3d11_capture_ptr.cur_frame_ptr = g_d3d11_capture_ptr.old_frame_ptr;
