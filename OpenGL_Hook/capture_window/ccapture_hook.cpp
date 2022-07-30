@@ -266,7 +266,7 @@ void g_send_video_callback()
 	if (g_d3d11_capture_ptr.cur_frame_ptr && g_d3d11_capture_ptr.cur_frame_ptr->capture_frame_ptr)
 	{
 		DEBUG_EX_LOG("send frame  ok !!!");
-		c_cpp_rtc_video(g_d3d11_capture_ptr.cur_frame_ptr->capture_frame_ptr, g_d3d11_capture_ptr.cur_frame_ptr->width, g_d3d11_capture_ptr.cur_frame_ptr->height);
+		c_cpp_rtc_video(g_d3d11_capture_ptr.cur_frame_ptr->capture_frame_ptr, 0, g_d3d11_capture_ptr.cur_frame_ptr->width, g_d3d11_capture_ptr.cur_frame_ptr->height);
 	}
 	else
 	{
