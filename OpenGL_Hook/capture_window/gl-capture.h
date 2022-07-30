@@ -23,7 +23,7 @@ extern "C" {
 	 void* gl_shared_init_d3d11(void);
 	  void* get_d3d11_device_context(void* cur_d3d11);
 	  bool hook_captuer_ok(void);
-	  void* get_shared();
+	  //void* get_shared();
 	  void g_send_video_callback();
 	  void send_video_data();
 #ifdef __cplusplus

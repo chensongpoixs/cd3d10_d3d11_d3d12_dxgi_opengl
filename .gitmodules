@@ -1,0 +1,15 @@
+[submodule "RenderOffScreen/dep/glfw"]
+	path = RenderOffScreen/dep/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "RenderOffScreen/dep/imgui"]
+	path = RenderOffScreen/dep/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "RenderOffScreen/dep/stb"]
+	path = RenderOffScreen/dep/stb
+	url = https://github.com/nothings/stb.git
+[submodule "RenderOffScreen/dep/dj_opengl"]
+	path = RenderOffScreen/dep/dj_opengl
+	url = https://github.com/jdupuy/dj_opengl.git
+[submodule "RenderOffScreen/dep/dj_algebra"]
+	path = RenderOffScreen/dep/dj_algebra
+	url = https://github.com/jdupuy/dj_algebra.git

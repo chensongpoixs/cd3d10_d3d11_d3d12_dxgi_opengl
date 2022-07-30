@@ -25,6 +25,8 @@ void Render();
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nShowCmd)
 {
+
+	
 	if (FAILED(InitWindow(hInstance, nShowCmd)))
 		return 0;
 	if (FAILED(InitDevice()))
@@ -133,7 +135,7 @@ HRESULT InitDevice()
 	sd.BufferCount = 1;                              //我们只创建一个后缓冲（双缓冲）因此为1
 	sd.BufferDesc.Width = width;
 	sd.BufferDesc.Height = height;
-	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	sd.BufferDesc.Format = DXGI_FORMAT_R10G10B10A2_UNORM; // DXGI_FORMAT_R8G8B8A8_UNORM;
 	sd.BufferDesc.RefreshRate.Numerator = 60;
 	sd.BufferDesc.RefreshRate.Denominator = 1;
 	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -204,11 +206,27 @@ HRESULT InitDevice()
 
 void Render()
 {
-	float ClearColor[4] = { 0.5f, 0.1f, 0.2f, 1.0f }; //red,green,blue,alpha
-	g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
+	static bool load = false;
+	if (load)
+	{
+		// 显示窗口
+		//ShowWindow(g_hWnd, SW_SHOW);
+		
+		load = false;
+		float ClearColor[4] = { 0.5f, 0.1f, 0.2f, 1.0f }; //red,green,blue,alpha
+		g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
+	}
+	else
+	{
+		// 隐藏窗口
+		//ShowWindow(g_hWnd, SW_HIDE);
+		load = true;
+		float ClearColor[4] = { 0.8f, 0.4f, 0.8f, 1.0f }; //red,green,blue,alpha
+		g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
+	}
 
 
-	
+	//ShowWindow(g_hWnd, SW_HIDE);
 
 	g_pSwapChain->Present(0, 0);
 
@@ -222,7 +240,14 @@ void Render()
 	/*D3D11_MAPPED_SUBRESOURCE map;
 	g_pImmediateContext->Map(pBackBuffer, 0, D3D11_MAP_READ, 0, &map);*/
 	//g_pImmediateContext->Unmap(pBackBuffer, 0);
+	//D3D11_SUBRESOURCE_DATA sdesc;//texture 初始化参数
+	//sdesc.pSysMem = buffer;//设置用于初始化的内容入口地址，内部会自动拷贝
+	//sdesc.SysMemPitch = width;//一行占用的像素，如果硬盘中存的内容的slice是2304，这里填2304，在创建是会自动截掉多余width的部分。对于这个slice，该值在存入文件中时如果是通过D3Dtexture map函数来存放，可以通过其中的参数来获知。
+	//sdesc.SysMemSlicePitch = width * height + width * height / 2;//总共占用的像素。
+	//ID3D11Texture2D* texTemp = nullptr;
 
+	////HRESULT hr = device->CreateTexture2D(&desc, NULL, &texTemp);
+	//HRESULT hr = device->CreateTexture2D(&desc, &sdesc, &texTemp);//创建texture
 	
 }
 

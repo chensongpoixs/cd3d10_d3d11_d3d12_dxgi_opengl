@@ -110,15 +110,11 @@ struct gl_data {
 
 
 
-struct gl_read_video
-{
-	int ready;
-	void* handler;
-};
+
 static HMODULE gl = NULL;
 static bool nv_capture_available = false;
 static struct gl_data data = {0 };
-static struct gl_read_video  gl_video_data = {0};
+
 __declspec(thread) static int swap_recurse;
 //static int read_cpu = 0;
 static inline bool gl_error(const char *func, const char *str)
@@ -137,7 +133,8 @@ static inline bool gl_error(const char *func, const char *str)
 static void gl_free(void)
 {
 	 
-	 
+	capture_count(0);
+	capture_init_shtex(NULL, 0, 0, 0, NULL);
 
 	if (data.using_shtex) {
 		if (data.gl_dxobj)
@@ -238,18 +235,22 @@ bool hook_captuer_ok(void )
 	return true;
 }
 
-void * get_shared()
-{
-	gl_video_data.handler = data.handle;
-	return &gl_video_data;
-}
 
 
 
-void send_video_data()
+struct video_data
 {
 	
-	c_cpp_rtc_texture((void*)get_shared(), data.cx, data.cy);
+	uint32_t v;
+	void* data;
+};
+
+static struct video_data _temp_video_data = {0};
+void send_video_data()
+{
+	_temp_video_data.data = data.handle;
+
+	//c_cpp_rtc_texture((void*)&_temp_video_data, data.cx, data.cy);
 }
 static void init_nv_functions(void)
 {
@@ -291,7 +292,10 @@ static bool init_gl_functions(void)
 
 	jimglGetProcAddress = base_get_proc("wglGetProcAddress");
 	if (!jimglGetProcAddress) {
+ 
 		ERROR_EX_LOG("init_gl_functions: failed to get wglGetProcAddress");
+ 
+ 
 		return false;
 	}
 
@@ -349,7 +353,9 @@ static inline bool gl_shtex_init_window(void)
 		WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS, 0, 0, 2, 2, NULL,
 		NULL, GetModuleHandle(NULL), NULL);
 	if (!data.hwnd) {
+ 
 		ERROR_EX_LOG("gl_shtex_init_window: failed to create window: %d",
+ 
 		     GetLastError());
 		return false;
 	}
@@ -375,14 +381,19 @@ static inline bool gl_shtex_init_d3d11(void)
 
 	HMODULE d3d11 = load_system_library("d3d11.dll");
 	if (!d3d11) {
+ 
 		ERROR_EX_LOG("gl_shtex_init_d3d11: failed to load D3D11.dll: %d",
+ 
+ 
 		     GetLastError());
 		return false;
 	}
 
 	HMODULE dxgi = load_system_library("dxgi.dll");
 	if (!dxgi) {
+ 
 		ERROR_EX_LOG("gl_shtex_init_d3d11: failed to load DXGI.dll: %d",
+ 
 		     GetLastError());
 		return false;
 	}
@@ -400,34 +411,36 @@ static inline bool gl_shtex_init_d3d11(void)
 	create_dxgi_factory1_t create_factory =
 		(void *)GetProcAddress(dxgi, "CreateDXGIFactory1");
 	if (!create_factory) {
-		ERROR_EX_LOG("gl_shtex_init_d3d11: failed to load CreateDXGIFactory1 "
-		     "procedure: %d",
-		     GetLastError());
+ 
+		ERROR_EX_LOG("gl_shtex_init_d3d11: failed to load CreateDXGIFactory1  procedure: %d", GetLastError());
 		return false;
 	}
 
 	PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN create =
 		(void *)GetProcAddress(d3d11, "D3D11CreateDeviceAndSwapChain");
 	if (!create) {
-		ERROR_EX_LOG("gl_shtex_init_d3d11: failed to load "
-		     "D3D11CreateDeviceAndSwapChain procedure: %d",
-		     GetLastError());
+ 
+		ERROR_EX_LOG("gl_shtex_init_d3d11: failed to load  D3D11CreateDeviceAndSwapChain procedure: %d", GetLastError());
 		return false;
 	}
 
 	hr = create_factory(&GUID_IDXGIFactory1, (void **)&factory);
 	if (FAILED(hr)) {
+ 
 		ERROR_EX_LOG("gl_shtex_init_d3d11: failed to create factory");
+ 
+ 
 		return false;
 	}
 	DEBUG_EX_LOG("set [gpu index = %u] ...", g_gpu_index);
-	hr = IDXGIFactory1_EnumAdapters1(factory, 0,
-					 (IDXGIAdapter1 **)&adapter);
+	hr = IDXGIFactory1_EnumAdapters1(factory, 0, (IDXGIAdapter1 **)&adapter);
 	IDXGIFactory1_Release(factory);
 
+ 
 	if (FAILED(hr)) 
 	{
 		ERROR_EX_LOG("set gpu failed !!! [gpu_index = %u]gl_shtex_init_d3d11: failed to create adapter", g_gpu_index);
+ 
 		return false;
 	}
 	DEBUG_EX_LOG("set [gpu index = %u] ok ", g_gpu_index);
@@ -437,9 +450,11 @@ static inline bool gl_shtex_init_d3d11(void)
 		    &data.d3d11_device, &level_used, &data.d3d11_context);
 	IDXGIAdapter_Release(adapter);
 
+ 
 	if (FAILED(hr)) 
 	{
 		ERROR_EX_LOG("set gpu failed !!! [gpu_index = %u]gl_shtex_init_d3d11: failed to create device", g_gpu_index);
+ 
 		return false;
 	}
 
@@ -459,6 +474,7 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 	desc.Format = data.format;
 	desc.SampleDesc.Count = 1;
 	desc.Usage = D3D11_USAGE_DEFAULT;
+ 
 	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
 	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
@@ -466,6 +482,15 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 	if (FAILED(hr)) 
 	{
 		ERROR_EX_LOG("gl_shtex_init_d3d11_tex: failed to create texture" );
+ 
+	//desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+	//desc.BindFlags = D3D10_RESOURCE_MISC_SHARED_KEYEDMUTEX  /*D3D11_BIND_SHADER_RESOURCE*/;
+
+	//hr = ID3D11Device_CreateTexture2D(data.d3d11_device, &desc, NULL,
+				//	  &data.d3d11_tex);
+	//if (FAILED(hr)) {
+	//	DEBUG_EX_LOG("gl_shtex_init_d3d11_tex: failed to create texture" );
+ 
 		return false;
 	}
 	 
@@ -474,7 +499,9 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 	hr = ID3D11Device_QueryInterface(data.d3d11_tex, &GUID_IDXGIResource, (void**)&dxgi_res);
 	if (FAILED(hr))
 	{
+ 
 		ERROR_EX_LOG("gl_shtex_init_d3d11_tex: failed to get IDXGIResource");
+ 
 		return false;
 	}
 
@@ -483,7 +510,9 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 
 	if (FAILED(hr))
 	{
+ 
 		ERROR_EX_LOG("gl_shtex_init_d3d11_tex: failed to get shared handle");
+ 
 		return false;
 	}
 	return true;
@@ -494,7 +523,9 @@ static inline bool gl_shtex_init_gl_tex(void)
 	 //1. 把D3D11的资源转换为OpenGL的资源
 	data.gl_device = jimglDXOpenDeviceNV(data.d3d11_device);
 	if (!data.gl_device) {
+ 
 		ERROR_EX_LOG("gl_shtex_init_gl_tex: failed to open device");
+ 
 		return false;
 	}
 	 
@@ -505,10 +536,18 @@ static inline bool gl_shtex_init_gl_tex(void)
 		return false;
 	}
 	// 3. 把D3D11的纹理信息映射到OpenGL的纹理到到资源中去
+ 
 	data.gl_dxobj = jimglDXRegisterObjectNV(data.gl_device, data.d3d11_tex, data.texture, GL_TEXTURE_2D, WGL_ACCESS_WRITE_DISCARD_NV);
 	if (!data.gl_dxobj) 
 	{
 		ERROR_EX_LOG("gl_shtex_init_gl_tex: failed to register object");
+ 
+	//data.gl_dxobj = jimglDXRegisterObjectNV(data.gl_device, data.d3d11_tex,
+	//					data.texture, GL_TEXTURE_2D,
+	//					WGL_ACCESS_WRITE_DISCARD_NV);
+	//if (!data.gl_dxobj) {
+	//	DEBUG_EX_LOG("gl_shtex_init_gl_tex: failed to register object");
+ 
 		return false;
 	}
 
@@ -572,9 +611,13 @@ static bool gl_shtex_init(HWND window)
 	{
 		return false;
 	}
+	capture_count(0);
+	capture_init_shtex( window, data.cx, data.cy, data.format, data.handle);
 	 
 
+ 
 	DEBUG_EX_LOG("gl shared texture capture successful");
+ 
 	return true;
 }
 
@@ -603,7 +646,12 @@ static int gl_init(HDC hdc)
 
 	data.hdc = hdc;
 	data.format = DXGI_FORMAT_B8G8R8A8_UNORM;
+ 
 	data.using_shtex = 0 == g_gpu_index;
+ 
+	//D3DX_R8G8B8A8_UINT_to_UINT4();
+	data.using_shtex = true;
+ 
 
 	if (data.using_shtex)
 	{
@@ -705,7 +753,7 @@ static void gl_copy_backbuffer(GLuint dst)
 	
 	 if (data.write_tick_count == 0)
 	 {
-
+		 capture_count(1);
 		 c_set_send_video_callback(&g_send_video_callback);
 	 }
 	 data.write_tick_count = GetTickCount64();
@@ -798,7 +846,8 @@ static void gl_capture(HDC hdc)
 { 
 	static bool critical_failure = false;
 
-	if (critical_failure) {
+	if (critical_failure) 
+	{
 		return;
 	}
 
@@ -861,7 +910,9 @@ static inline void gl_swap_end(HDC hdc)
 { 
 	 
 	 
-	 
+ 
+	//if ( gl_video_data.ready == 0)
+ 
 	{
 		SYSTEMTIME t1;
 		GetSystemTime(&t1);
@@ -871,13 +922,20 @@ static inline void gl_swap_end(HDC hdc)
 		// 原理是:
 		// 写入时覆盖，
 		// 读取时复制新GPU显卡上
-	gl_capture(hdc);
+ 
+	//gl_capture(hdc);
+	//{
+ 
+		gl_capture(hdc);
+
+		//capture_init_shtex(NULL, data.cx, data.cy, data.format, data.handle);
 	{
+ 
 		SYSTEMTIME t1;
 		GetSystemTime(&t1);
 		DEBUG_EX_LOG("<<<<<<capture -->> end cur = %u", t1.wMilliseconds);
 	}
-	 
+ 
 }
 
 static BOOL WINAPI hook_swap_buffers(HDC hdc)
@@ -939,7 +997,9 @@ static bool gl_register_window(void)
 	wc.lpszClassName = DUMMY_WINDOW_CLASS_NAME;
 
 	if (!RegisterClassW(&wc)) {
+ 
 		ERROR_EX_LOG("gl_register_window: failed to register window class: %d",
+ 
 		     GetLastError());
 		return false;
 	}
@@ -1019,7 +1079,9 @@ static bool gl_register_window(void)
 	void *wgl_sb_proc;
 
 	gl = get_system_module("opengl32.dll");
-	if (!gl) {
+	if (!gl) 
+	{
+		WARNING_EX_LOG("hook opengl32 failed !!!");
 		return false;
 	}
 
@@ -1028,14 +1090,16 @@ static bool gl_register_window(void)
 	/*const char *process_name = get_process_name();
 	if (_strcmpi(process_name, "yo_cm_client.exe") == 0 ||
 	    _strcmpi(process_name, "cm_client.exe") == 0) {
-		printf("Ignoring opengl for game: %s", process_name);
+		DEBUG_EX_LOG("Ignoring opengl for game: %s", process_name);
 		return true;
 	}*/
 
-	if (!gl_register_window()) {
+	if (!gl_register_window())
+	{
+		WARNING_EX_LOG("hook gl_register_window failed !!!");
 		return true;
 	}
-
+	DEBUG_EX_LOG("---...");
 	wgl_dc_proc = base_get_proc("wglDeleteContext");
 	wgl_slb_proc = base_get_proc("wglSwapLayerBuffers");
 	wgl_sb_proc = base_get_proc("wglSwapBuffers");
