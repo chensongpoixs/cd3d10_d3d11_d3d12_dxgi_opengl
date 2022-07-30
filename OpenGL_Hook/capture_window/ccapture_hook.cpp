@@ -143,6 +143,7 @@ static DWORD WINAPI dummy_window_thread(LPVOID *unused)
 	(void)unused;
 	return 0;
 }
+
 static FILE* out_file_log_ptr = ::fopen(g_ccapture_hook_file_name, "wb+");;
 static inline void SHOW(const char* format, va_list args)
 {
@@ -422,16 +423,21 @@ BOOL APIENTRY DllMain(HINSTANCE hinst, DWORD reason, LPVOID unused1)
 	
 	if (!out_capture_log_ptr)
 	{
+ 
 		out_capture_log_ptr = ::fopen("./capture_log_chensong.log", "wb+");
 	}
 
+ 
+	 
 	if (out_capture_log_ptr)
 	{
 		::fprintf(out_capture_log_ptr, "[%s][%s][%d]\n", __FILE__, __FUNCTION__, __LINE__);
 		::fflush(out_capture_log_ptr);
 	}
+ 
 	 
 	if (reason == DLL_PROCESS_ATTACH) {
+ 
 		wchar_t name[MAX_PATH];
 		if (out_capture_log_ptr)
 		{
@@ -488,7 +494,11 @@ BOOL APIENTRY DllMain(HINSTANCE hinst, DWORD reason, LPVOID unused1)
 			CloseHandle(capture_thread);
 			 
 		}
-
+		if (out_capture_log_ptr)
+		{
+			::fprintf(out_capture_log_ptr, "[%s][%s][%d] DLL_PROCESS_ATTACH\n", __FILE__, __FUNCTION__, __LINE__);
+			::fflush(out_capture_log_ptr);
+		}
 		//free_hook();
 	}
 	if (out_capture_log_ptr)
