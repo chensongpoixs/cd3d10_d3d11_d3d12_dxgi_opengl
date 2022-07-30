@@ -650,7 +650,7 @@ static int gl_init(HDC hdc)
 	data.using_shtex = 0 == g_gpu_index;
  
 	//D3DX_R8G8B8A8_UINT_to_UINT4();
-	data.using_shtex = true;
+	///data.using_shtex = true;
  
 
 	if (data.using_shtex)
