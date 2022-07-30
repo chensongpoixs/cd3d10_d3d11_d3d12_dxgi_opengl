@@ -1,4 +1,4 @@
-#include <d3d10_1.h>
+﻿#include <d3d10_1.h>
 #include <d3d11.h>
 #include <dxgi1_2.h>
 #include <d3dcompiler.h>
@@ -46,12 +46,14 @@ static bool setup_dxgi(IDXGISwapChain *swap)
 	HRESULT hr;
 	DEBUG_EX_LOG("");
 	hr = swap->GetDevice(__uuidof(ID3D11Device), (void **)&device);
-	if (SUCCEEDED(hr)) {
+	if (SUCCEEDED(hr)) 
+	{
 		ID3D11Device *d3d11 = static_cast<ID3D11Device *>(device);
 		D3D_FEATURE_LEVEL level = d3d11->GetFeatureLevel();
 		device->Release();
 
-		if (level >= D3D_FEATURE_LEVEL_11_0) {
+		if (level >= D3D_FEATURE_LEVEL_11_0) 
+		{
 			DEBUG_EX_LOG("Found D3D11 11.0 device on swap chain");
 
 			data.swap = swap;
@@ -185,14 +187,14 @@ static void update_mismatch_count(bool match)
 	}
 	else 
 	{
+		// 有新的d3dxx的引擎窗口了哈
 		++swap_chain_mismatch_count;
 
 		if (swap_chain_mismatch_count == swap_chain_mismtach_limit)
 		{
 			data.swap = nullptr;
 			data.capture = nullptr;
-			memset(dxgi_possible_swap_queues, 0,
-			       sizeof(dxgi_possible_swap_queues));
+			memset(dxgi_possible_swap_queues, 0, sizeof(dxgi_possible_swap_queues));
 			dxgi_possible_swap_queue_count = 0;
 			dxgi_present_attempted = false;
 
@@ -215,6 +217,7 @@ static HRESULT STDMETHODCALLTYPE hook_present(IDXGISwapChain *swap,
 		update_mismatch_count(swap == data.swap);
 	}
 
+	// 第一次解析的地方
 	if (!data.swap )
 	{
 		setup_dxgi(swap);
@@ -261,11 +264,12 @@ static HRESULT STDMETHODCALLTYPE hook_present(IDXGISwapChain *swap,
 		 */
 		DEBUG_EX_LOG("new frame !!!");
 		pre_millise = t1.wMilliseconds;
-		/*if (resize_buffers_called) 
+		// resize buffer
+		if (resize_buffers_called) 
 		{
 			resize_buffers_called = false;
 		} 
-		else*/ 
+		else
 		{
 			IUnknown *backbuffer = get_dxgi_backbuffer(swap);
 
@@ -327,11 +331,11 @@ hook_present1(IDXGISwapChain1 *swap, UINT sync_interval, UINT flags,
 
 	if (capture && diff > 15)
 	{
-		/*if (resize_buffers_called) 
+		if (resize_buffers_called) 
 		{
 			resize_buffers_called = false;
 		} 
-		else */
+		else
 		{
 			DEBUG_EX_LOG("new frame !!!");
 			pre_millise = t1.wMilliseconds;

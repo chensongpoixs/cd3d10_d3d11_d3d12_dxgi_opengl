@@ -1,5 +1,5 @@
-
-// Õâ¸öºêÊÇ·Ç³£ÖØÒªµÄ¹ş ·ñÔò»á±àÒë²»¹ıÈ¥µÄ¹ş ^_^
+ï»¿
+// è¿™ä¸ªå®æ˜¯éå¸¸é‡è¦çš„å“ˆ å¦åˆ™ä¼šç¼–è¯‘ä¸è¿‡å»çš„å“ˆ ^_^
 //#define COBJMACROS
 #include <dxgi.h>
 #include <d3d11.h>
@@ -30,9 +30,9 @@ static HINSTANCE dll_inst = NULL;
 static volatile bool stop_loop = false;
 static HANDLE capture_thread = NULL;
 
-// ÏµÍ³»·¾³±äÁ¿
+// ç³»ç»Ÿç¯å¢ƒå˜é‡
 char system_path[MAX_PATH] = { 0 };
-// µ±Ç°¿ÉÖ´ĞĞ³ÌĞòÃû³Æ
+// å½“å‰å¯æ‰§è¡Œç¨‹åºåç§°
 char process_name[MAX_PATH] = { 0 };
 wchar_t keepalive_name[64] = { 0 };
 HWND dummy_window = NULL;
@@ -79,7 +79,7 @@ bool  startup_capture_send_video_thread()
 	return true;
 }
 /// <summary>
-///  »ñÈ¡µ±Ç°ÏµÍ³»·¾³±äÁ¿
+///  è·å–å½“å‰ç³»ç»Ÿç¯å¢ƒå˜é‡
 /// </summary>
 /// <param name=""></param>
 /// <returns></returns>
@@ -99,7 +99,7 @@ static inline bool init_system_path(void)
 
 #define DEF_FLAGS (WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS)
 
-// ×¢²á¶¥²ã ´°¿ÚÏûÏ¢ÊÂ¼ş
+// æ³¨å†Œé¡¶å±‚ çª—å£æ¶ˆæ¯äº‹ä»¶
 static DWORD WINAPI dummy_window_thread(LPVOID *unused)
 {
 	 
@@ -398,19 +398,19 @@ static inline void capture_loop(void)
 }
 static DWORD WINAPI main_capture_thread(HANDLE thread_handle)
 {
-	// 1. ´°¿ÚÊÂ¼ş¼ì²é
+	// 1. çª—å£äº‹ä»¶æ£€æŸ¥
 	if (!init_hook(thread_handle)) 
 	{
 		DEBUG_EX_LOG(  "[%s][%d][OBS] Failed to init hook\n", __FUNCTION__, __LINE__);
 		 
 		return 0;
 	}
-	// 2. ¿ªÊ¼×¥È¡µ±Ç°Ö÷³ÌĞòµÄ´°¿Ú
+	// 2. å¼€å§‹æŠ“å–å½“å‰ä¸»ç¨‹åºçš„çª—å£
 	capture_loop();
 	return 0;
 }
 /// <summary>
-/// ¶¯Ì¬¿âµÄÈë¿Ú
+/// åŠ¨æ€åº“çš„å…¥å£
 /// </summary>
 /// <param name="hinst"></param>
 /// <param name="reason"></param>

@@ -1,4 +1,4 @@
-/********************************************************************
+ï»¿/********************************************************************
 created:	2022-05-08
 
 author:		chensong
@@ -16,7 +16,7 @@ purpose:	capture hook
 
 #include <windows.h>
 #include "ccapture_hook.h"
-// Õâ¸öºêÊÇ·Ç³£ÖØÒªµÄ¹ş ·ñÔò»á±àÒë²»¹ıÈ¥µÄ¹ş ^_^
+// è¿™ä¸ªå®æ˜¯éå¸¸é‡è¦çš„å“ˆ å¦åˆ™ä¼šç¼–è¯‘ä¸è¿‡å»çš„å“ˆ ^_^
 #define COBJMACROS
 #include <dxgi.h>
 #include <d3d11.h>
@@ -426,7 +426,7 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 	}
 	 
 	//////////////////////////////////////////////////////////////////////////////////////////
-	// ÉèÖÃD3D11µÄÍ¬ÏíGPUÄ£Ê½  
+	// è®¾ç½®D3D11çš„åŒäº«GPUæ¨¡å¼  
 	hr = ID3D11Device_QueryInterface(data.d3d11_tex, &GUID_IDXGIResource,
 		(void**)&dxgi_res);
 	if (FAILED(hr))
@@ -448,18 +448,18 @@ static inline bool gl_shtex_init_d3d11_tex(void)
  
 static inline bool gl_shtex_init_gl_tex(void)
 {
-	 //1. °ÑD3D11µÄ×ÊÔ´×ª»»ÎªOpenGLµÄ×ÊÔ´
+	 //1. æŠŠD3D11çš„èµ„æºè½¬æ¢ä¸ºOpenGLçš„èµ„æº
 	data.gl_device = jimglDXOpenDeviceNV(data.d3d11_device);
 	if (!data.gl_device) {
 		DEBUG_EX_LOG("gl_shtex_init_gl_tex: failed to open device");
 		return false;
 	}
-	// 2. µÃµ½OpenGLµÄÎÆÀíĞÅÏ¢
+	// 2. å¾—åˆ°OpenGLçš„çº¹ç†ä¿¡æ¯
 	glGenTextures(1, &data.texture);
 	if (gl_error("gl_shtex_init_gl_tex", "failed to generate texture")) {
 		return false;
 	}
-	// 3. °ÑD3D11µÄÎÆÀíĞÅÏ¢Ó³Éäµ½OpenGLµÄÎÆÀíµ½µ½×ÊÔ´ÖĞÈ¥
+	// 3. æŠŠD3D11çš„çº¹ç†ä¿¡æ¯æ˜ å°„åˆ°OpenGLçš„çº¹ç†åˆ°åˆ°èµ„æºä¸­å»
 	data.gl_dxobj = jimglDXRegisterObjectNV(data.gl_device, data.d3d11_tex,
 						data.texture, GL_TEXTURE_2D,
 						WGL_ACCESS_WRITE_DISCARD_NV);
@@ -473,8 +473,8 @@ static inline bool gl_shtex_init_gl_tex(void)
 
 /*
 
-´´½¨FBO
-´´½¨FBOµÄ·½Ê½ÀàËÆÓÚ´´½¨VBO£¬Ê¹ÓÃglGenFramebuffers
+åˆ›å»ºFBO
+åˆ›å»ºFBOçš„æ–¹å¼ç±»ä¼¼äºåˆ›å»ºVBOï¼Œä½¿ç”¨glGenFramebuffers
 
 void glGenFramebuffers(
 	GLsizei n,
@@ -482,17 +482,17 @@ void glGenFramebuffers(
 1
 2
 3
-n:´´½¨µÄÖ¡»º³åÇø¶ÔÏóµÄÊıÁ¿
-ids£º±£´æ´´½¨Ö¡»º³åÇø¶ÔÏóIDµÄÊı×é»òÕß±äÁ¿
-ÆäÖĞ£¬IDÎª0ÓĞÌØÊâµÄº¬Òå£¬±íÊ¾´°¿ÚÏµÍ³Ìá¹©µÄÖ¡»º³åÇø£¨Ä¬ÈÏ£©
-FBO²»ÔÚÊ¹ÓÃÖ®ºóÊ¹ÓÃglDeleteFramebuffersÉ¾³ı¸ÃFBO
+n:åˆ›å»ºçš„å¸§ç¼“å†²åŒºå¯¹è±¡çš„æ•°é‡
+idsï¼šä¿å­˜åˆ›å»ºå¸§ç¼“å†²åŒºå¯¹è±¡IDçš„æ•°ç»„æˆ–è€…å˜é‡
+å…¶ä¸­ï¼ŒIDä¸º0æœ‰ç‰¹æ®Šçš„å«ä¹‰ï¼Œè¡¨ç¤ºçª—å£ç³»ç»Ÿæä¾›çš„å¸§ç¼“å†²åŒºï¼ˆé»˜è®¤ï¼‰
+FBOä¸åœ¨ä½¿ç”¨ä¹‹åä½¿ç”¨glDeleteFramebuffersåˆ é™¤è¯¥FBO
 
-´´½¨FBOÖ®ºó£¬ÔÚÊ¹ÓÃÖ®Ç°ĞèÒª°ó¶¨Ëü£¬Ê¹ÓÃglBindFramebuffers
+åˆ›å»ºFBOä¹‹åï¼Œåœ¨ä½¿ç”¨ä¹‹å‰éœ€è¦ç»‘å®šå®ƒï¼Œä½¿ç”¨glBindFramebuffers
 
 void glBindFramebuffer(GLenum target, GLuint id)
 1
-target:°ó¶¨µÄÄ¿±ê£¬¸Ã²ÎÊı±ØĞëÉèÖÃÎª GL_FRAMEBUFFER
-id£ºÓÉglGenFramebuffers´´½¨µÄid
+target:ç»‘å®šçš„ç›®æ ‡ï¼Œè¯¥å‚æ•°å¿…é¡»è®¾ç½®ä¸º GL_FRAMEBUFFER
+idï¼šç”±glGenFramebuffersåˆ›å»ºçš„id
  
 */
 static inline bool gl_init_fbo(void)
@@ -504,22 +504,22 @@ static inline bool gl_init_fbo(void)
 
 static bool gl_shtex_init(HWND window)
 {
-	 // 1. Õâ¸ö´°¿Ú³õÊ¼»¯ ÎÒÃ»ÓĞ¿´¶®
+	 // 1. è¿™ä¸ªçª—å£åˆå§‹åŒ– æˆ‘æ²¡æœ‰çœ‹æ‡‚
 	if (!gl_shtex_init_window()) 
 	{
 		return false;
 	}
-	// 2. ´´½¨Éè±¸ Óë½»»»Á´
+	// 2. åˆ›å»ºè®¾å¤‡ ä¸äº¤æ¢é“¾
 	if (!gl_shtex_init_d3d11()) 
 	{
 		return false;
 	}
-	// 3. ´´½¨Texture ½á¹¹
+	// 3. åˆ›å»ºTexture ç»“æ„
 	if (!gl_shtex_init_d3d11_tex()) 
 	{
 		return false;
 	}
-	// 4. d3d11 µÄÉè±¸Ó³Éäµ½OpenGLÖĞÈ¥ 
+	// 4. d3d11 çš„è®¾å¤‡æ˜ å°„åˆ°OpenGLä¸­å» 
 	if (!gl_shtex_init_gl_tex()) 
 	{
 		return false;
@@ -619,7 +619,7 @@ static void gl_copy_backbuffer(GLuint dst)
 	{
 		return;
 	}
-	// TODO@chensong 2022-05-16   OpenGL Ö¸¶¨¶¥µãÎ»ÖÃ ¸´ÖÆ  
+	// TODO@chensong 2022-05-16   OpenGL æŒ‡å®šé¡¶ç‚¹ä½ç½® å¤åˆ¶  
 	glBlitFramebuffer(0, data.cy, data.cx, 0, 0, 0, data.cx, data.cy,
 			  GL_COLOR_BUFFER_BIT, GL_LINEAR);
 	gl_error("gl_copy_backbuffer", "failed to blit");
@@ -634,7 +634,7 @@ static void gl_copy_backbuffer(GLuint dst)
 
 	 GLint last_fbo;
 	 GLint last_tex;
-	 // 1. ¼ÓËø GPUµÄÄÚ´æ
+	 // 1. åŠ é” GPUçš„å†…å­˜
 	 jimglDXLockObjectsNV(data.gl_device, 1, &data.gl_dxobj);
 
 	 glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &last_fbo);
@@ -757,7 +757,7 @@ static void gl_capture(HDC hdc)
 
 	 
 }
-// Õâ¸öº¯ÊıÄ¿Ç°É¶ÊÂÇé¶¼Ã»ÓĞ¸É
+// è¿™ä¸ªå‡½æ•°ç›®å‰å•¥äº‹æƒ…éƒ½æ²¡æœ‰å¹²
 static inline void gl_swap_begin(HDC hdc)
 { 
    
@@ -774,10 +774,10 @@ static inline void gl_swap_end(HDC hdc)
 		GetSystemTime(&t1);
 		DEBUG_EX_LOG("capture -->> start cur = %u", t1.wMilliseconds);
 		}
-		// ¿½±´ÒªäÖÈ¾µ½ÆÁÄ»ÉÏÒ»Ö¡Êı¾İ¿½±´µ½¹²ÏíGPUÏÔ¿¨ÖĞÈ¥ £¬ 
-		// Ô­ÀíÊÇ:
-		// Ğ´ÈëÊ±¸²¸Ç£¬
-		// ¶ÁÈ¡Ê±¸´ÖÆĞÂGPUÏÔ¿¨ÉÏ
+		// æ‹·è´è¦æ¸²æŸ“åˆ°å±å¹•ä¸Šä¸€å¸§æ•°æ®æ‹·è´åˆ°å…±äº«GPUæ˜¾å¡ä¸­å» ï¼Œ 
+		// åŸç†æ˜¯:
+		// å†™å…¥æ—¶è¦†ç›–ï¼Œ
+		// è¯»å–æ—¶å¤åˆ¶æ–°GPUæ˜¾å¡ä¸Š
 		gl_capture(hdc);
 
 		//capture_init_shtex(NULL, data.cx, data.cy, data.format, data.handle);
