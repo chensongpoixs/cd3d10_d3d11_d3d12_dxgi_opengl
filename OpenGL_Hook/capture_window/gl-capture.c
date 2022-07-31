@@ -448,6 +448,7 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 	{
 		desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 	}
+//<<<<<<< HEAD
 	else
 	{
 		desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
@@ -455,6 +456,13 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 
 	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	hr = ID3D11Device_CreateTexture2D(data.d3d11_device, &desc, NULL, &data.d3d11_tex);
+//=======
+	 
+	//////////////////////////////////////////////////////////////////////////////////////////
+	// 设置D3D11的同享GPU模式  
+	hr = ID3D11Device_QueryInterface(data.d3d11_tex, &GUID_IDXGIResource,
+		(void**)&dxgi_res);
+//>>>>>>> b5a2a73c8d165c99ef70c41948300d7e8e9bf805
 	if (FAILED(hr))
 	{
 		ERROR_EX_LOG("gl_shtex_init_d3d11_tex: failed to create texture");
@@ -512,36 +520,20 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 
 
 
-	//////////////////////////////////////////////////////////////////////////////////////////
-	// 设置D3D11的同享GPU模式  
-	hr = ID3D11Device_QueryInterface(data.d3d11_tex, &GUID_IDXGIResource, (void**)&dxgi_res);
-	if (FAILED(hr))
-	{
-		ERROR_EX_LOG("gl_shtex_init_d3d11_tex: failed to get IDXGIResource");
-		return false;
-	}
-
-	hr = IDXGIResource_GetSharedHandle(dxgi_res, &data.handle);
-	IDXGIResource_Release(dxgi_res);
-
-	if (FAILED(hr))
-	{
-		ERROR_EX_LOG("gl_shtex_init_d3d11_tex: failed to get shared handle");
-		return false;
-	}
 	return true;
 }
 
 static inline bool gl_shtex_init_gl_tex(void)
 {
-	//1. 把D3D11的资源转换为OpenGL的资源
+ 
+	 //1. 把D3D11的资源转换为OpenGL的资源 
 	data.gl_device = jimglDXOpenDeviceNV(data.d3d11_device);
 	if (!data.gl_device)
 	{
 		ERROR_EX_LOG("gl_shtex_init_gl_tex: failed to open device");
 		return false;
 	}
-
+   
 	// 2. 得到OpenGL的纹理信息
 	glGenTextures(1, &data.texture);
 	//glGenBuffers(1, data.texture);
@@ -550,10 +542,13 @@ static inline bool gl_shtex_init_gl_tex(void)
 		return false;
 	}
 	// 3. 把D3D11的纹理信息映射到OpenGL的纹理到到资源中去
+ 
 	data.gl_dxobj = jimglDXRegisterObjectNV(data.gl_device, data.d3d11_tex, data.texture, GL_TEXTURE_2D, WGL_ACCESS_WRITE_DISCARD_NV);
 	if (!data.gl_dxobj)
 	{
 		ERROR_EX_LOG("gl_shtex_init_gl_tex: failed to register object");
+ 
+		 
 		return false;
 	}
 
@@ -561,8 +556,15 @@ static inline bool gl_shtex_init_gl_tex(void)
 }
 
 /*
+<<<<<<< HEAD
 创建FBO
 创建FBO的方式类似于创建VBO，使用glGenFramebuffers
+=======
+
+创建FBO
+创建FBO的方式类似于创建VBO，使用glGenFramebuffers
+
+>>>>>>> b5a2a73c8d165c99ef70c41948300d7e8e9bf805
 void glGenFramebuffers(
 	GLsizei n,
 	GLuint *ids);
@@ -573,12 +575,22 @@ n:创建的帧缓冲区对象的数量
 ids：保存创建帧缓冲区对象ID的数组或者变量
 其中，ID为0有特殊的含义，表示窗口系统提供的帧缓冲区（默认）
 FBO不在使用之后使用glDeleteFramebuffers删除该FBO
+<<<<<<< HEAD
 创建FBO之后，在使用之前需要绑定它，使用glBindFramebuffers
+=======
+
+创建FBO之后，在使用之前需要绑定它，使用glBindFramebuffers
+
+>>>>>>> b5a2a73c8d165c99ef70c41948300d7e8e9bf805
 void glBindFramebuffer(GLenum target, GLuint id)
 1
 target:绑定的目标，该参数必须设置为 GL_FRAMEBUFFER
 id：由glGenFramebuffers创建的id
+<<<<<<< HEAD
 
+=======
+ 
+>>>>>>> b5a2a73c8d165c99ef70c41948300d7e8e9bf805
 */
 static inline bool gl_init_fbo(void)
 {
@@ -589,23 +601,24 @@ static inline bool gl_init_fbo(void)
 
 static bool gl_shtex_init(HWND window)
 {
+//<<<<<<< HEAD
 	// 1. 这个窗口初始化 我没有看懂
-	if (!gl_shtex_init_window())
+	if (!gl_shtex_init_window()) 
 	{
 		return false;
 	}
 	// 2. 创建设备 与交换链
-	if (!gl_shtex_init_d3d11())
+	if (!gl_shtex_init_d3d11()) 
 	{
 		return false;
 	}
 	// 3. 创建Texture 结构
-	if (!gl_shtex_init_d3d11_tex())
+	if (!gl_shtex_init_d3d11_tex()) 
 	{
 		return false;
 	}
 	// 4. d3d11 的设备映射到OpenGL中去 
-	if (!gl_shtex_init_gl_tex())
+	if (!gl_shtex_init_gl_tex()) 
 	{
 		return false;
 	}
@@ -706,7 +719,9 @@ static void gl_copy_backbuffer(GLuint dst)
 }
 
 
+ 
 
+ 
 
 
 static void gl_shtex_capture(void)
@@ -855,15 +870,19 @@ static void gl_capture(HDC hdc)
 		//ShowWindow(hdc, SW_HIDE);
 	}
 
-
+ 
+	 
+}
+// 这个函数目前啥事情都没有干
+static inline void gl_swap_begin(HDC hdc)
+{ 
+ 
 }
 
 
 static inline void gl_swap_end(HDC hdc)
-{
-
-
-
+{ 
+	  
 	{
 		SYSTEMTIME t1;
 		GetSystemTime(&t1);

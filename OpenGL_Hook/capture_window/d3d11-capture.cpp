@@ -190,10 +190,7 @@ static bool d3d11_shtex_init(HWND window)
 		WARNING_EX_LOG("d3d11_shtex_init: failed to create texture");
 		return false;
 	}
-	/*if (!capture_init_shtex(&data.shtex_info, window, data.cx, data.cy,
-				data.format, false, (uintptr_t)data.handle)) {
-		return false;
-	}*/
+	 
 	capture_count(0);
 	capture_init_shtex(window, data.cx, data.cy, data.format,  data.handle);
 	DEBUG_EX_LOG("capture_init_shtex d3d11 shared texture capture successful");
@@ -236,62 +233,66 @@ static inline void d3d11_copy_texture(ID3D11Resource *dst, ID3D11Resource *src)
 		data.context->CopyResource(dst, src);
 	}
 
+	if (g_gpu_index != 0)
 	{
-		SYSTEMTIME t1;
-		GetSystemTime(&t1);
-		DEBUG_EX_LOG(" start copy frame mem cpu  wMilliseconds = %u", t1.wMilliseconds);
-	}
-
-	D3D11_TEXTURE2D_DESC bufferTextureDesc = { 0 };
-	bufferTextureDesc.Width = data.cx;
-	bufferTextureDesc.Height = data.cy;
-	bufferTextureDesc.MipLevels = 1;
-	bufferTextureDesc.ArraySize = 1;
-	 
-	bufferTextureDesc.SampleDesc.Count = 1;
-	bufferTextureDesc.Format = data.format;// DXGI_FORMAT_B8G8R8A8_UNORM;
-	bufferTextureDesc.BindFlags = 0;
-	bufferTextureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-	bufferTextureDesc.MiscFlags = 0;
-	bufferTextureDesc.Usage = D3D11_USAGE_STAGING;
-	ID3D11Texture2D* tex;
-	HRESULT hr   = data.device->CreateTexture2D(&bufferTextureDesc, nullptr, &tex);;// CreateTexture2D(data.device, &bufferTextureDesc, NULL,
-		//&data.d3d11_tex_video);
-	if (SUCCEEDED(hr))
-	{
-		data.context->CopyResource(tex, dst);
-		D3D11_MAPPED_SUBRESOURCE map;
-		UINT subResource = 0;
 		{
 			SYSTEMTIME t1;
 			GetSystemTime(&t1);
-			DEBUG_EX_LOG("map  start [data.write_tick_count = %u] [wMilliseconds = %u]!!!", data.write_tick_count, t1.wMilliseconds);
+			DEBUG_EX_LOG(" start copy frame mem cpu  wMilliseconds = %u", t1.wMilliseconds);
 		}
-		hr = data.context->Map(tex, 0, D3D11_MAP_READ, 0, &map);
-		//static FILE* out_file_yuv_ptr = fopen("read_yuv.rgb", "wb+");
+
+		D3D11_TEXTURE2D_DESC bufferTextureDesc = { 0 };
+		bufferTextureDesc.Width = data.cx;
+		bufferTextureDesc.Height = data.cy;
+		bufferTextureDesc.MipLevels = 1;
+		bufferTextureDesc.ArraySize = 1;
+
+		bufferTextureDesc.SampleDesc.Count = 1;
+		bufferTextureDesc.Format = data.format;// DXGI_FORMAT_B8G8R8A8_UNORM;
+		bufferTextureDesc.BindFlags = 0;
+		bufferTextureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		bufferTextureDesc.MiscFlags = 0;
+		bufferTextureDesc.Usage = D3D11_USAGE_STAGING;
+		ID3D11Texture2D* tex;
+		HRESULT hr = data.device->CreateTexture2D(&bufferTextureDesc, nullptr, &tex);;// CreateTexture2D(data.device, &bufferTextureDesc, NULL,
+			//&data.d3d11_tex_video);
 		if (SUCCEEDED(hr))
 		{
+			data.context->CopyResource(tex, dst);
+			D3D11_MAPPED_SUBRESOURCE map;
+			UINT subResource = 0;
 			{
 				SYSTEMTIME t1;
 				GetSystemTime(&t1);
-				DEBUG_EX_LOG("map ok [data.write_tick_count = %u] [wMilliseconds = %u]!!!", data.write_tick_count, t1.wMilliseconds);
+				DEBUG_EX_LOG("map  start [data.write_tick_count = %u] [wMilliseconds = %u]!!!", data.write_tick_count, t1.wMilliseconds);
 			}
-			
-			d3d11_capture_frame(static_cast<unsigned char *>(map.pData), data.format, data.cx, data.cy);
-			/*if (out_file_yuv_ptr)
+			hr = data.context->Map(tex, 0, D3D11_MAP_READ, 0, &map);
+			//static FILE* out_file_yuv_ptr = fopen("read_yuv.rgb", "wb+");
+			if (SUCCEEDED(hr))
 			{
-				fwrite(map.pData, 1, data.cx * data.cy * 4, out_file_yuv_ptr);
-				fflush(out_file_yuv_ptr);
-			}*/
-		}
-		else
-		{
-			ERROR_EX_LOG("map failed !!!");
-		}
-		data.context->Unmap(tex, 0);
-		tex->Release();
-	}
+				{
+					SYSTEMTIME t1;
+					GetSystemTime(&t1);
+					DEBUG_EX_LOG("map ok [data.write_tick_count = %u] [wMilliseconds = %u]!!!", data.write_tick_count, t1.wMilliseconds);
+				}
 
+				d3d11_capture_frame(static_cast<unsigned char*>(map.pData), data.format, data.cx, data.cy);
+				/*if (out_file_yuv_ptr)
+				{
+					fwrite(map.pData, 1, data.cx * data.cy * 4, out_file_yuv_ptr);
+					fflush(out_file_yuv_ptr);
+				}*/
+			}
+			else
+			{
+				ERROR_EX_LOG("map failed !!!");
+			}
+			data.context->Unmap(tex, 0);
+			tex->Release();
+		}
+
+	}
+	
 
 	if (data.write_tick_count == 0)
 	{
