@@ -232,18 +232,7 @@ static HRESULT STDMETHODCALLTYPE hook_present(IDXGISwapChain *swap,
 	static uint64_t pre_millise = 0;
 	uint64_t diff = t1.wMilliseconds - pre_millise;
 	
-	//if (capture && diff> 15)
-	//{
-	//	DEBUG_EX_LOG("new frame !!!");
-	//	pre_millise = t1.wMilliseconds;
-	//	IUnknown *backbuffer = get_dxgi_backbuffer(swap);
-
-	//	if (backbuffer)
-	//	{
-	//		data.capture(swap, backbuffer);
-	//		backbuffer->Release();
-	//	}
-	//}
+	 
 
 	dxgi_presenting = true;
 	const HRESULT hr = RealPresent(swap, sync_interval, flags);
@@ -261,11 +250,11 @@ static HRESULT STDMETHODCALLTYPE hook_present(IDXGISwapChain *swap,
 		 */
 		DEBUG_EX_LOG("new frame !!!");
 		pre_millise = t1.wMilliseconds;
-		/*if (resize_buffers_called) 
+		if (resize_buffers_called) 
 		{
 			resize_buffers_called = false;
 		} 
-		else*/ 
+		else
 		{
 			IUnknown *backbuffer = get_dxgi_backbuffer(swap);
 
@@ -308,17 +297,7 @@ hook_present1(IDXGISwapChain1 *swap, UINT sync_interval, UINT flags,
 	DEBUG_EX_LOG("capture = %u -->> start cur = %u", capture, t1.wMilliseconds);
 	static uint64_t pre_millise = 0;
 	uint64_t diff = t1.wMilliseconds - pre_millise;
-	/*if (capture) 
-	{
-		IUnknown *backbuffer = get_dxgi_backbuffer(swap); 
-		if (backbuffer) 
-		{
-			DXGI_SWAP_CHAIN_DESC1 desc;
-			swap->GetDesc1(&desc);
-			data.capture(swap, backbuffer);
-			backbuffer->Release();
-		}
-	}*/
+	 
 
 	dxgi_presenting = true;
 	const HRESULT hr = RealPresent1(swap, sync_interval, flags, params);
@@ -326,12 +305,12 @@ hook_present1(IDXGISwapChain1 *swap, UINT sync_interval, UINT flags,
 	dxgi_present_attempted = true;
 
 	if (capture && diff > 15)
-	{
-		/*if (resize_buffers_called) 
+	{ 
+		if (resize_buffers_called) 
 		{
 			resize_buffers_called = false;
 		} 
-		else */
+		else  
 		{
 			DEBUG_EX_LOG("new frame !!!");
 			pre_millise = t1.wMilliseconds;
