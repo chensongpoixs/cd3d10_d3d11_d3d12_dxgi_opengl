@@ -105,6 +105,7 @@ static bool create_d3d11_tex(uint32_t cx, uint32_t cy, ID3D11Texture2D **tex,
 	desc.SampleDesc.Count = 1;
 	desc.Usage = D3D11_USAGE_DEFAULT;
 	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+	//desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX; //»áºÚÆÁµÄ¹þ 
 
 
 	////////////////////////
@@ -233,14 +234,14 @@ static inline void d3d11_copy_texture(ID3D11Resource *dst, ID3D11Resource *src)
 		data.context->CopyResource(dst, src);
 	}
 
-	if (g_gpu_index != 0)
+	if (true/*g_gpu_index != 0*/)
 	{
 		{
 			SYSTEMTIME t1;
 			GetSystemTime(&t1);
 			DEBUG_EX_LOG(" start copy frame mem cpu  wMilliseconds = %u", t1.wMilliseconds);
 		}
-
+		
 		D3D11_TEXTURE2D_DESC bufferTextureDesc = { 0 };
 		bufferTextureDesc.Width = data.cx;
 		bufferTextureDesc.Height = data.cy;
@@ -267,7 +268,7 @@ static inline void d3d11_copy_texture(ID3D11Resource *dst, ID3D11Resource *src)
 				DEBUG_EX_LOG("map  start [data.write_tick_count = %u] [wMilliseconds = %u]!!!", data.write_tick_count, t1.wMilliseconds);
 			}
 			hr = data.context->Map(tex, 0, D3D11_MAP_READ, 0, &map);
-			//static FILE* out_file_yuv_ptr = fopen("read_yuv.rgb", "wb+");
+			static FILE* out_file_yuv_ptr = fopen("read_yuv.rgb", "wb+");
 			if (SUCCEEDED(hr))
 			{
 				{
@@ -276,12 +277,8 @@ static inline void d3d11_copy_texture(ID3D11Resource *dst, ID3D11Resource *src)
 					DEBUG_EX_LOG("map ok [data.write_tick_count = %u] [wMilliseconds = %u]!!!", data.write_tick_count, t1.wMilliseconds);
 				}
 
-				d3d11_capture_frame(static_cast<unsigned char*>(map.pData), data.format, data.cx, data.cy);
-				/*if (out_file_yuv_ptr)
-				{
-					fwrite(map.pData, 1, data.cx * data.cy * 4, out_file_yuv_ptr);
-					fflush(out_file_yuv_ptr);
-				}*/
+				d3d11_capture_frame(static_cast<unsigned char*>(map.pData), data.format, map.RowPitch, map.DepthPitch, data.cx, data.cy);
+				 
 			}
 			else
 			{

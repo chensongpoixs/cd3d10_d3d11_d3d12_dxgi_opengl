@@ -278,7 +278,7 @@ void g_set_gpu_index_callback(uint32_t gpu_index)
 
 void g_send_video_callback()
 {
-	  
+	 
 	if (g_capture_ptr.count != 0)
 	{
 		{
@@ -286,7 +286,7 @@ void g_send_video_callback()
 			GetSystemTime(&t1);
 			DEBUG_EX_LOG("start send cur = %u", t1.wMilliseconds);
 		}
-		if (0 != g_gpu_index)
+		if (0 != g_gpu_index || g_capture_ptr.cur_frame_ptr->fmt == DXGI_FORMAT_R10G10B10A2_UNORM)
 		{
 			if (g_capture_ptr.cur_frame_ptr && g_capture_ptr.cur_frame_ptr->capture_frame_ptr)
 			{
@@ -392,7 +392,7 @@ static inline bool attempt_hook(void)
 			}
 		}
 	}
-	/*if ( !gl_hooked)
+	if ( !gl_hooked)
 	{
 
 		gl_hooked = hook_gl();
@@ -401,7 +401,7 @@ static inline bool attempt_hook(void)
 			return true;
 		}
 
-	}*/
+	}
 	return false;
 }
 
@@ -561,7 +561,7 @@ void capture_init_shtex(HWND window, uint32_t cx, uint32_t cy, uint32_t format, 
 	g_capture_ptr.height = cy;
 }
 
-void d3d11_capture_frame(unsigned char* rgba_ptr, uint32_t fmt, uint32_t width, uint32_t heigth)
+void d3d11_capture_frame(unsigned char* rgba_ptr, uint32_t fmt, uint32_t row_pitch, uint32_t depth_pitch, uint32_t width, uint32_t heigth)
 {
 	if (!g_capture_ptr.old_frame_ptr)
 	{
@@ -601,7 +601,34 @@ void d3d11_capture_frame(unsigned char* rgba_ptr, uint32_t fmt, uint32_t width, 
 		}
 	}
 	g_capture_ptr.old_frame_ptr->fmt = fmt;
-	memcpy(g_capture_ptr.old_frame_ptr->capture_frame_ptr, rgba_ptr, static_cast<size_t>(sizeof(unsigned char) * width * heigth * 4));
+
+	if (false /*DXGI_FORMAT_R10G10B10A2_UNORM == fmt*/)
+	{
+		//DXGI_FORMAT_R10G10B10A2_UNORM ===>DXGI_FORMAT_B8G8R8A8_UNORM [A8R8G8B8]
+		//[1111 1111] [1122 2222][2222 3333][3333 3344]
+		// 
+		//[1111 1111] [2222 2222][3333 3333][4444 4444]
+		// ///
+		//[4444 4444] [1111 1111][2222 2222][3333 3333]
+		for (int y = 0; y < heigth; ++y)
+		{
+			for (int x = 0; x <  width; ++x)
+			{
+				const size_t host_data_index = y * (width *4 ) + x * 4;
+				const size_t frame_data_index = y * (width  * 4)/*data.frame->linesize[0]*/ + x * 4;
+
+				g_capture_ptr.old_frame_ptr->capture_frame_ptr[frame_data_index + 1] = (static_cast<const uint8_t*>(rgba_ptr)[host_data_index + 0]);
+				g_capture_ptr.old_frame_ptr->capture_frame_ptr[frame_data_index + 2] = (static_cast<const uint8_t*>(rgba_ptr)[host_data_index + 1]>>2);
+				g_capture_ptr.old_frame_ptr->capture_frame_ptr[frame_data_index + 3] = (static_cast<const uint8_t*>(rgba_ptr)[host_data_index + 2]>>4);
+				g_capture_ptr.old_frame_ptr->capture_frame_ptr[frame_data_index + 0] = ((static_cast<const uint8_t*>(rgba_ptr)[host_data_index + 3] >> 4)<<4);
+			}
+		}
+	}
+	else
+	{
+		memcpy(g_capture_ptr.old_frame_ptr->capture_frame_ptr, rgba_ptr, static_cast<size_t>(sizeof(unsigned char) * width * heigth * 4));
+	}
+	
 	void* ptr = g_capture_ptr.cur_frame_ptr;
 	g_capture_ptr.cur_frame_ptr = g_capture_ptr.old_frame_ptr;
 	g_capture_ptr.old_frame_ptr = (struct cframe_video*)ptr;

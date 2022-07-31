@@ -159,7 +159,7 @@ static void gl_free(void)
 	data.capture_init = false;
 
 	gl_error("gl_free", "GL error occurred on free");
-
+	capture_init_shtex(NULL, 0, 0, 0, NULL);
 	memset(&data, 0, sizeof(data));
 
 	DEBUG_EX_LOG("------------------ gl capture freed ------------------");
@@ -447,8 +447,7 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 	if (0 != g_gpu_index)
 	{
 		desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
-	}
-//<<<<<<< HEAD
+	} 
 	else
 	{
 		desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
@@ -468,7 +467,15 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 		ERROR_EX_LOG("gl_shtex_init_d3d11_tex: failed to create texture");
 		return false;
 	}
+	hr = IDXGIResource_GetSharedHandle(dxgi_res, &data.handle);
+	IDXGIResource_Release(dxgi_res);
 
+	if (FAILED(hr))
+	{
+		ERROR_EX_LOG("gl_shtex_init_d3d11_tex: failed to get shared handle" );
+		return false;
+	}
+	
 	if (0 != g_gpu_index)
 	{
 		// TODO@chensong 20220722 shard gpu 方案一 
@@ -551,7 +558,7 @@ static inline bool gl_shtex_init_gl_tex(void)
 		 
 		return false;
 	}
-
+	
 	return true;
 }
 
@@ -627,7 +634,8 @@ static bool gl_shtex_init(HWND window)
 		return false;
 	}
 
-
+	capture_count(0);
+	capture_init_shtex(window, data.cx, data.cy, data.format, data.handle);
 	DEBUG_EX_LOG("gl shared texture capture successful");
 	return true;
 }
@@ -778,18 +786,18 @@ static void gl_shtex_capture(void)
 
 			return;
 		}
-		size_t rgba_size = data.cx * data.cy * 4;
+		//size_t rgba_size = data.cx * data.cy * 4;
 
 		// filp
 
 		if (data.shard_buffer[1])
 		{
 
-
-			memcpy(data.shard_buffer[1], mapd.pData, rgba_size);
+			d3d11_capture_frame(mapd.pData, data.format, mapd.RowPitch, mapd.DepthPitch, data.cx, data.cy);
+			/*memcpy(data.shard_buffer[1], mapd.pData, rgba_size);
 			uint8_t* temp_ptr = data.shard_buffer[0];
 			data.shard_buffer[0] = data.shard_buffer[1];
-			data.shard_buffer[1] = temp_ptr;
+			data.shard_buffer[1] = temp_ptr;*/
 		}
 
 		ID3D11DeviceContext_Unmap(data.d3d11_context, (ID3D11Resource*)data.d3d11_tex_video, subResource);
