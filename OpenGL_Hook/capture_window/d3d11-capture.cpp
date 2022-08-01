@@ -158,14 +158,18 @@ static inline bool d3d11_init_format(IDXGISwapChain *swap, HWND &window)
 {
 	DXGI_SWAP_CHAIN_DESC desc;
 	HRESULT hr;
-	DEBUG_EX_LOG("");
+	//DEBUG_EX_LOG("");
 	hr = swap->GetDesc(&desc);
 	if (FAILED(hr))
 	{
 		WARNING_EX_LOG("d3d11_init_format: swap->GetDesc failed", hr);
 		return false;
 	}
-
+	if (desc.BufferDesc.Width < 100 || desc.BufferDesc.Height)
+	{
+		WARNING_EX_LOG("data.format = %u][desc.BufferDesc.Width = %u][desc.BufferDesc.Height = %u]", data.format, desc.BufferDesc.Width, desc.BufferDesc.Height);
+		//return false;
+	}
 	data.format = strip_dxgi_format_srgb(desc.BufferDesc.Format);
 	DEBUG_EX_LOG("data.format = %u][desc.BufferDesc.Width = %u]", data.format, desc.BufferDesc.Width);
 	data.multisampled = desc.SampleDesc.Count > 1;
@@ -192,13 +196,13 @@ static bool d3d11_shtex_init(HWND window)
 		return false;
 	}
 	 
-	capture_count(0);
+	
 	capture_init_shtex(window, data.cx, data.cy, data.format,  data.handle);
 	DEBUG_EX_LOG("capture_init_shtex d3d11 shared texture capture successful");
 	return true;
 }
 
-static void d3d11_init(IDXGISwapChain *swap)
+static bool d3d11_init(IDXGISwapChain *swap)
 {
 	HWND window;
 	HRESULT hr;
@@ -206,7 +210,7 @@ static void d3d11_init(IDXGISwapChain *swap)
 	hr = swap->GetDevice(__uuidof(ID3D11Device), (void **)&data.device);
 	if (FAILED(hr)) {
 		ERROR_EX_LOG("d3d11_init: failed to get device from swap", hr);
-		return;
+		return false;
 	}
 
 	data.device->Release();
@@ -214,15 +218,18 @@ static void d3d11_init(IDXGISwapChain *swap)
 	data.device->GetImmediateContext(&data.context);
 	data.context->Release();
 
-	if (!d3d11_init_format(swap, window)) {
-		return;
+	if (!d3d11_init_format(swap, window))
+	{
+		return false;
 	}
 
 	const bool success =    d3d11_shtex_init(window);
 	if (!success)
 	{
 		d3d11_free();
+		return false;
 	}
+	return true;
 }
 
 static inline void d3d11_copy_texture(ID3D11Resource *dst, ID3D11Resource *src)
@@ -325,7 +332,11 @@ void d3d11_capture(void *swap_ptr, void *backbuffer_ptr)
 	}*/
 	if (!data.init_capture)
 	{
-		d3d11_init(swap);
+		if (!d3d11_init(swap))
+		{
+			WARNING_EX_LOG("d3d11 init failed !!!");
+			//return ;
+		}
 		data.init_capture = true;
 
 	}

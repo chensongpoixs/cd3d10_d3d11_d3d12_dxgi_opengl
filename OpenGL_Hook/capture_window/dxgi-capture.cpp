@@ -40,6 +40,9 @@ static struct dxgi_swap_data data = {};
 static int swap_chain_mismatch_count = 0;
 constexpr int swap_chain_mismtach_limit = 16;
 
+
+//static bool use_opengl = false;
+
 static bool setup_dxgi(IDXGISwapChain *swap)
 {
 	IUnknown *device;

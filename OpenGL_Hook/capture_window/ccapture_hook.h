@@ -121,10 +121,10 @@ static const char* g_ccapture_hook_file_name = "./capture_hook/ccapture_hook.log
 
 void LOG(const char* format, ...);
 
-#define WARNING_EX_LOG(format, ...)	LOG("[%s][%d][warn]" format, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define WARNING_EX_LOG(format, ...)	LOG("[%s][%s][%d][warn]" format, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
  
-#define DEBUG_EX_LOG(format, ...)   LOG("[%s][%d][debug]" format, __FUNCTION__, __LINE__, ##__VA_ARGS__)
-#define ERROR_EX_LOG(format, ...)   LOG("[%s][%d][error]" format, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define DEBUG_EX_LOG(format, ...)   LOG("[%s][%s][%d][debug]" format, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define ERROR_EX_LOG(format, ...)   LOG("[%s][%s][%d][error]" format, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 
 extern uint32_t g_run;
 

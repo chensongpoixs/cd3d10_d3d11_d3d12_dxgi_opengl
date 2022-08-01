@@ -634,7 +634,7 @@ static bool gl_shtex_init(HWND window)
 		return false;
 	}
 
-	capture_count(0);
+	//capture_count(0);
 	capture_init_shtex(window, data.cx, data.cy, data.format, data.handle);
 	DEBUG_EX_LOG("gl shared texture capture successful");
 	return true;
@@ -809,7 +809,7 @@ static void gl_shtex_capture(void)
 	}
 	if (data.write_tick_count == 0)
 	{
-
+		capture_count(1);
 		c_set_send_video_callback(&g_send_video_callback);
 	}
 	data.write_tick_count = GetTickCount64();

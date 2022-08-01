@@ -300,7 +300,7 @@ void g_send_video_callback()
 		}
 		else
 		{
-			DEBUG_EX_LOG("shared gpu send frame  ok !!!");
+			DEBUG_EX_LOG("shared gpu send frame [g_capture_ptr.handle = %p][g_capture_ptr.fmt = %u][g_capture_ptr.width = %u][g_capture_ptr.height = %u] ok !!!", g_capture_ptr.handle, g_capture_ptr.fmt, g_capture_ptr.width, g_capture_ptr.height);
 			cpp_rtc_texture(g_capture_ptr.handle, g_capture_ptr.fmt, g_capture_ptr.width, g_capture_ptr.height);
 		}
 
@@ -392,7 +392,7 @@ static inline bool attempt_hook(void)
 			}
 		}
 	}
-	if ( !gl_hooked)
+	 if ( !gl_hooked)
 	{
 
 		gl_hooked = hook_gl();
@@ -548,13 +548,19 @@ BOOL APIENTRY DllMain(HINSTANCE hinst, DWORD reason, LPVOID unused1)
 
 void capture_count(uint32_t count)
 {
+	DEBUG_EX_LOG("[count = %u]", count);
 	 g_capture_ptr.count = count;
 	 
 }
 void capture_init_shtex(HWND window, uint32_t cx, uint32_t cy, uint32_t format, HANDLE handle)
 {
+	if (handle && (cx < 100 || cy < 100))
+	{
+		WARNING_EX_LOG("[width = %u][height = %u][format = %u][handle = %p]", cx, cy, format, handle);
+		return;
+	}
 	DEBUG_EX_LOG("[width = %u][height = %u][format = %u][handle = %p]", cx, cy, format, handle);
-
+	capture_count(0);
 	g_capture_ptr.handle =  handle;
 	g_capture_ptr.fmt = format;
 	g_capture_ptr.width = cx;
