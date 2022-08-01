@@ -165,7 +165,7 @@ static inline bool d3d11_init_format(IDXGISwapChain *swap, HWND &window)
 		WARNING_EX_LOG("d3d11_init_format: swap->GetDesc failed", hr);
 		return false;
 	}
-	if (desc.BufferDesc.Width < 100 || desc.BufferDesc.Height)
+	if (desc.BufferDesc.Width == 2 && desc.BufferDesc.Height == 2)
 	{
 		WARNING_EX_LOG("data.format = %u][desc.BufferDesc.Width = %u][desc.BufferDesc.Height = %u]", data.format, desc.BufferDesc.Width, desc.BufferDesc.Height);
 		//return false;

@@ -164,6 +164,7 @@ static DWORD WINAPI dummy_window_thread(LPVOID *unused)
 	(void)unused;
 	return 0;
 }
+static const char* g_ccapture_hook_file_name = "./capture_hook/ccapture_hook.log";
 
 static FILE* out_file_log_ptr = ::fopen(g_ccapture_hook_file_name, "wb+");;
 static inline void SHOW(const char* format, va_list args)
@@ -174,7 +175,7 @@ static inline void SHOW(const char* format, va_list args)
 		return;
 	}
 
-	char message[1024] = {0};
+	char message[10240] = {0};
 
 	int num = _vsprintf_p(message, 1024, format, args);
 	if (num > 0)
@@ -278,7 +279,7 @@ void g_set_gpu_index_callback(uint32_t gpu_index)
 
 void g_send_video_callback()
 {
-	 
+	//return;
 	if (g_capture_ptr.count != 0)
 	{
 		{
@@ -286,7 +287,7 @@ void g_send_video_callback()
 			GetSystemTime(&t1);
 			DEBUG_EX_LOG("start send cur = %u", t1.wMilliseconds);
 		}
-		if (0 != g_gpu_index || g_capture_ptr.cur_frame_ptr->fmt == DXGI_FORMAT_R10G10B10A2_UNORM)
+		if (0 != g_gpu_index || (g_capture_ptr.cur_frame_ptr && g_capture_ptr.cur_frame_ptr->fmt == DXGI_FORMAT_R10G10B10A2_UNORM))
 		{
 			if (g_capture_ptr.cur_frame_ptr && g_capture_ptr.cur_frame_ptr->capture_frame_ptr)
 			{

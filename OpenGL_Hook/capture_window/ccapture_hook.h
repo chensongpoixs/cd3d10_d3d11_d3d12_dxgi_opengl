@@ -106,18 +106,8 @@ extern "C" {
 
 //一秒显示多少帧图片
 #define FRAME_SUM (1000/60)
+ 
 
-
-
-
-
-//void LOG(const char* format, ...);
-
-//#define WARNING_EX_LOG(format, ...)	WARNING_LOG("[%s][%d]" format, FUNCTION, __LINE__, ##__VA_ARGS__)
-
-//#define NUM_BUFFERS (3)
-
-static const char* g_ccapture_hook_file_name = "./capture_hook/ccapture_hook.log";
 
 void LOG(const char* format, ...);
 

@@ -212,6 +212,20 @@ static void update_mismatch_count(bool match)
 static HRESULT STDMETHODCALLTYPE hook_present(IDXGISwapChain *swap,
 					      UINT sync_interval, UINT flags)
 {
+	if (swap)
+	{
+		DXGI_SWAP_CHAIN_DESC desc;
+		const HRESULT hr = swap->GetDesc(&desc);
+		if (FAILED(hr))
+		{
+			WARNING_EX_LOG("hook_present1: swap->GetDesc failed", hr);
+			return hr;
+		}
+		if (desc.BufferDesc.Height == 2 && desc.BufferDesc.Width == 2)
+		{
+			return  RealPresent(swap, sync_interval, flags);
+		}
+	}
 	//const bool capture_overlay = global_hook_info->capture_overlay;
 	const bool test_draw = (flags & DXGI_PRESENT_TEST) != 0;
 	DEBUG_EX_LOG("");
@@ -281,6 +295,21 @@ hook_present1(IDXGISwapChain1 *swap, UINT sync_interval, UINT flags,
 {
 	DEBUG_EX_LOG("");
 	 
+
+	if (swap)
+	{
+		DXGI_SWAP_CHAIN_DESC desc;
+		const HRESULT hr = swap->GetDesc(&desc);
+		if (FAILED(hr))
+		{
+			WARNING_EX_LOG("hook_present1: swap->GetDesc failed", hr);
+			return hr;
+		}
+		if (desc.BufferDesc.Height == 2 && desc.BufferDesc.Width == 2)
+		{
+			return RealPresent1(swap, sync_interval, flags, params);
+		}
+	}
 	const bool test_draw = (flags & DXGI_PRESENT_TEST) != 0;
 
 	if (data.swap) 

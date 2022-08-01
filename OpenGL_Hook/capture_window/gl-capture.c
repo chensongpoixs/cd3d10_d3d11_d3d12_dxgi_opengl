@@ -455,7 +455,11 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 
 	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	hr = ID3D11Device_CreateTexture2D(data.d3d11_device, &desc, NULL, &data.d3d11_tex);
-//=======
+	if (FAILED(hr))
+	{
+		ERROR_EX_LOG("gl_shtex_init_d3d11_tex: failed to create texture" );
+		return false;
+	}
 	 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	// 设置D3D11的同享GPU模式  
