@@ -5,7 +5,10 @@
 #include "D3dclass.h"
 #include <cstdio>
 #include <cstdlib>
+// GPU
 uint32_t g_gpu_index;
+// ÏÔÊ¾Æ÷
+uint32_t g_monitor_index;
 static FILE * out_file_ptr = fopen("./test_gpu_index.log", "wb+");
 D3DClass::D3DClass()
 {

@@ -25,6 +25,7 @@ using namespace DirectX;
 
 
 extern uint32_t g_gpu_index;
+extern uint32_t g_monitor_index;
 class D3DClass
 {
 public:

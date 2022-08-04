@@ -16,6 +16,10 @@ int main(int argc, char *argv[])
 	if (argc > 1)
 	{
 		g_gpu_index = std::atoi( argv[1]);
+		if (argc > 2)
+		{
+			g_monitor_index = std::atoi(argv[1]);
+		}
 	}
 	SystemClass* System;
 	bool result;
