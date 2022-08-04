@@ -105,7 +105,6 @@ static bool create_d3d11_tex(uint32_t cx, uint32_t cy, ID3D11Texture2D **tex,
 	desc.SampleDesc.Count = 1;
 	desc.Usage = D3D11_USAGE_DEFAULT;
 	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
-	//desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX; //»áºÚÆÁµÄ¹þ 
 
 
 	////////////////////////
@@ -158,18 +157,14 @@ static inline bool d3d11_init_format(IDXGISwapChain *swap, HWND &window)
 {
 	DXGI_SWAP_CHAIN_DESC desc;
 	HRESULT hr;
-	//DEBUG_EX_LOG("");
+	DEBUG_EX_LOG("");
 	hr = swap->GetDesc(&desc);
 	if (FAILED(hr))
 	{
 		WARNING_EX_LOG("d3d11_init_format: swap->GetDesc failed", hr);
 		return false;
 	}
-	if (desc.BufferDesc.Width == 2 && desc.BufferDesc.Height == 2)
-	{
-		WARNING_EX_LOG("data.format = %u][desc.BufferDesc.Width = %u][desc.BufferDesc.Height = %u]", data.format, desc.BufferDesc.Width, desc.BufferDesc.Height);
-		//return false;
-	}
+
 	data.format = strip_dxgi_format_srgb(desc.BufferDesc.Format);
 	DEBUG_EX_LOG("data.format = %u][desc.BufferDesc.Width = %u]", data.format, desc.BufferDesc.Width);
 	data.multisampled = desc.SampleDesc.Count > 1;
@@ -195,14 +190,17 @@ static bool d3d11_shtex_init(HWND window)
 		WARNING_EX_LOG("d3d11_shtex_init: failed to create texture");
 		return false;
 	}
-	 
-	
+	/*if (!capture_init_shtex(&data.shtex_info, window, data.cx, data.cy,
+				data.format, false, (uintptr_t)data.handle)) {
+		return false;
+	}*/
+	capture_count(0);
 	capture_init_shtex(window, data.cx, data.cy, data.format,  data.handle);
 	DEBUG_EX_LOG("capture_init_shtex d3d11 shared texture capture successful");
 	return true;
 }
 
-static bool d3d11_init(IDXGISwapChain *swap)
+static void d3d11_init(IDXGISwapChain *swap)
 {
 	HWND window;
 	HRESULT hr;
@@ -210,7 +208,7 @@ static bool d3d11_init(IDXGISwapChain *swap)
 	hr = swap->GetDevice(__uuidof(ID3D11Device), (void **)&data.device);
 	if (FAILED(hr)) {
 		ERROR_EX_LOG("d3d11_init: failed to get device from swap", hr);
-		return false;
+		return;
 	}
 
 	data.device->Release();
@@ -218,18 +216,15 @@ static bool d3d11_init(IDXGISwapChain *swap)
 	data.device->GetImmediateContext(&data.context);
 	data.context->Release();
 
-	if (!d3d11_init_format(swap, window))
-	{
-		return false;
+	if (!d3d11_init_format(swap, window)) {
+		return;
 	}
 
 	const bool success =    d3d11_shtex_init(window);
 	if (!success)
 	{
 		d3d11_free();
-		return false;
 	}
-	return true;
 }
 
 static inline void d3d11_copy_texture(ID3D11Resource *dst, ID3D11Resource *src)
@@ -241,62 +236,46 @@ static inline void d3d11_copy_texture(ID3D11Resource *dst, ID3D11Resource *src)
 		data.context->CopyResource(dst, src);
 	}
 
-	if (true/*g_gpu_index != 0*/)
-	{
-		{
-			SYSTEMTIME t1;
-			GetSystemTime(&t1);
-			DEBUG_EX_LOG(" start copy frame mem cpu  wMilliseconds = %u", t1.wMilliseconds);
-		}
-		
-		D3D11_TEXTURE2D_DESC bufferTextureDesc = { 0 };
-		bufferTextureDesc.Width = data.cx;
-		bufferTextureDesc.Height = data.cy;
-		bufferTextureDesc.MipLevels = 1;
-		bufferTextureDesc.ArraySize = 1;
 
-		bufferTextureDesc.SampleDesc.Count = 1;
-		bufferTextureDesc.Format = data.format;// DXGI_FORMAT_B8G8R8A8_UNORM;
-		bufferTextureDesc.BindFlags = 0;
-		bufferTextureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-		bufferTextureDesc.MiscFlags = 0;
-		bufferTextureDesc.Usage = D3D11_USAGE_STAGING;
-		ID3D11Texture2D* tex;
-		HRESULT hr = data.device->CreateTexture2D(&bufferTextureDesc, nullptr, &tex);;// CreateTexture2D(data.device, &bufferTextureDesc, NULL,
-			//&data.d3d11_tex_video);
-		if (SUCCEEDED(hr))
-		{
-			data.context->CopyResource(tex, dst);
-			D3D11_MAPPED_SUBRESOURCE map;
-			UINT subResource = 0;
-			{
-				SYSTEMTIME t1;
-				GetSystemTime(&t1);
-				DEBUG_EX_LOG("map  start [data.write_tick_count = %u] [wMilliseconds = %u]!!!", data.write_tick_count, t1.wMilliseconds);
-			}
-			hr = data.context->Map(tex, 0, D3D11_MAP_READ, 0, &map);
-			static FILE* out_file_yuv_ptr = fopen("read_yuv.rgb", "wb+");
-			if (SUCCEEDED(hr))
-			{
-				{
-					SYSTEMTIME t1;
-					GetSystemTime(&t1);
-					DEBUG_EX_LOG("map ok [data.write_tick_count = %u] [wMilliseconds = %u]!!!", data.write_tick_count, t1.wMilliseconds);
-				}
+	//D3D11_TEXTURE2D_DESC bufferTextureDesc = { 0 };
+	//bufferTextureDesc.Width = data.cx;
+	//bufferTextureDesc.Height = data.cy;
+	//bufferTextureDesc.MipLevels = 1;
+	//bufferTextureDesc.ArraySize = 1;
+	// 
+	//bufferTextureDesc.SampleDesc.Count = 1;
+	//bufferTextureDesc.Format = data.format;// DXGI_FORMAT_B8G8R8A8_UNORM;
+	//bufferTextureDesc.BindFlags = 0;
+	//bufferTextureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	//bufferTextureDesc.MiscFlags = 0;
+	//bufferTextureDesc.Usage = D3D11_USAGE_STAGING;
+	//ID3D11Texture2D* tex;
+	//HRESULT hr   = data.device->CreateTexture2D(&bufferTextureDesc, nullptr, &tex);;// CreateTexture2D(data.device, &bufferTextureDesc, NULL,
+	//	//&data.d3d11_tex_video);
+	//if (SUCCEEDED(hr))
+	//{
+	//	data.context->CopyResource(tex, src);
+	//	D3D11_MAPPED_SUBRESOURCE map;
+	//	UINT subResource = 0;
+	//	hr = data.context->Map(tex, 0, D3D11_MAP_READ, 0, &map);
+	//	static FILE* out_file_yuv_ptr = fopen("read_yuv.rgb", "wb+");
+	//	if (SUCCEEDED(hr))
+	//	{
+	//		DEBUG_EX_LOG("map ok  !!!");
+	//		if (out_file_yuv_ptr)
+	//		{
+	//			fwrite(map.pData, 1, data.cx * data.cy * 4, out_file_yuv_ptr);
+	//			fflush(out_file_yuv_ptr);
+	//		}
+	//	}
+	//	else
+	//	{
+	//		ERROR_EX_LOG("map failed !!!");
+	//	}
+	//	data.context->Unmap(tex, 0);
+	//	tex->Release();
+	//}
 
-				d3d11_capture_frame(static_cast<unsigned char*>(map.pData), data.format, map.RowPitch, map.DepthPitch, data.cx, data.cy);
-				 
-			}
-			else
-			{
-				ERROR_EX_LOG("map failed !!!");
-			}
-			data.context->Unmap(tex, 0);
-			tex->Release();
-		}
-
-	}
-	
 
 	if (data.write_tick_count == 0)
 	{
@@ -304,12 +283,6 @@ static inline void d3d11_copy_texture(ID3D11Resource *dst, ID3D11Resource *src)
 		c_set_send_video_callback(&g_send_video_callback);
 	}
 	data.write_tick_count = GetTickCount64();
-	{
-		SYSTEMTIME t1;
-		GetSystemTime(&t1);
-		DEBUG_EX_LOG(" end copy frame mem cpu  wMilliseconds = %u", t1.wMilliseconds);
-	}
-
 }
 
 static inline void d3d11_shtex_capture(ID3D11Resource *backbuffer)
@@ -332,11 +305,7 @@ void d3d11_capture(void *swap_ptr, void *backbuffer_ptr)
 	}*/
 	if (!data.init_capture)
 	{
-		if (!d3d11_init(swap))
-		{
-			WARNING_EX_LOG("d3d11 init failed !!!");
-			//return ;
-		}
+		d3d11_init(swap);
 		data.init_capture = true;
 
 	}

@@ -21,10 +21,21 @@
 
 
 
+<<<<<<< HEAD
+# 
+
+
+```
+git submodule update --init --recursive
+
+```
+
+=======
 
 
 ## 三、win上注入两种方法 
 
 injector_demo
+>>>>>>> cc4ecf4e6bc682b1a02f696fbd6991062f2847fd
 
   

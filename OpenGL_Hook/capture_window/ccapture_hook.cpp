@@ -1,5 +1,5 @@
-
-// Õâ¸öºêÊÇ·Ç³£ÖØÒªµÄ¹ş ·ñÔò»á±àÒë²»¹ıÈ¥µÄ¹ş ^_^
+ï»¿
+// è¿™ä¸ªå®æ˜¯éå¸¸é‡è¦çš„å“ˆ å¦åˆ™ä¼šç¼–è¯‘ä¸è¿‡å»çš„å“ˆ ^_^
 //#define COBJMACROS
 #include <dxgi.h>
 #include <d3d11.h>
@@ -16,6 +16,7 @@
 #include "gl-capture.h"
 #include "capture.h"
 #include <chrono>
+#include <string>
 #include "C:\Work\cabroad_server\Server\Robot\ccloud_rendering_c.h"
 #include "cd3dxx.h"
 
@@ -29,10 +30,16 @@ static struct gl_read_video  gl_video_data = { 0 };
 static HINSTANCE dll_inst = NULL;
 static volatile bool stop_loop = false;
 static HANDLE capture_thread = NULL;
+uint32_t g_run ;
 
-// ÏµÍ³»·¾³±äÁ¿
+//<<<<<<< HEAD
+uint32_t g_gpu_index;
+// ÏµÍ³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//=======
+// ç³»ç»Ÿç¯å¢ƒå˜é‡
+//>>>>>>> b5a2a73c8d165c99ef70c41948300d7e8e9bf805
 char system_path[MAX_PATH] = { 0 };
-// µ±Ç°¿ÉÖ´ĞĞ³ÌĞòÃû³Æ
+// å½“å‰å¯æ‰§è¡Œç¨‹åºåç§°
 char process_name[MAX_PATH] = { 0 };
 wchar_t keepalive_name[64] = { 0 };
 HWND dummy_window = NULL;
@@ -43,35 +50,57 @@ HWND dummy_window = NULL;
 //#pragma comment  (lib,"dxgi.lib")//d3dcompiler.lib
 
 
-struct ccapture
-{ 
-	HANDLE handle;
-	uint32_t width;
-	uint32_t height;
-	uint32_t count;
-};
-static struct ccapture capture = {0};
+//struct ccapture
+//{ 
+//	HANDLE handle;
+//	uint32_t width;
+//	uint32_t height;
+//	uint32_t count;
+//};
+//static struct ccapture capture = {0};
 
 struct cframe_video
 {
 	unsigned char* capture_frame_ptr;
+	uint32_t fmt;
 	uint32_t width;
 	uint32_t height;
+	
 	cframe_video()
 		:capture_frame_ptr(NULL)
+		, fmt(0)
 		, width(0)
 		, height(0)
+		
 	{
 	}
 };
 
-struct d3d11_capture
+struct ccapture
 {
 	cframe_video* cur_frame_ptr;
 	cframe_video* old_frame_ptr;
+	HANDLE handle;
+	uint32_t fmt;
+	uint32_t width;
+	uint32_t height;
+	uint32_t count;
+	ccapture()
+		: cur_frame_ptr(NULL)
+		, old_frame_ptr(NULL)
+		, handle(NULL)
+		, fmt(0)
+		, width(0)
+		, height(0)
+		, count(0)
+	{
+	}
 };
 
-static struct d3d11_capture   g_d3d11_capture_ptr = {0};
+static struct ccapture   g_capture_ptr;
+
+
+ 
 
 bool  startup_capture_send_video_thread()
 {
@@ -79,7 +108,7 @@ bool  startup_capture_send_video_thread()
 	return true;
 }
 /// <summary>
-///  »ñÈ¡µ±Ç°ÏµÍ³»·¾³±äÁ¿
+///  è·å–å½“å‰ç³»ç»Ÿç¯å¢ƒå˜é‡
 /// </summary>
 /// <param name=""></param>
 /// <returns></returns>
@@ -99,7 +128,7 @@ static inline bool init_system_path(void)
 
 #define DEF_FLAGS (WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS)
 
-// ×¢²á¶¥²ã ´°¿ÚÏûÏ¢ÊÂ¼ş
+// æ³¨å†Œé¡¶å±‚ çª—å£æ¶ˆæ¯äº‹ä»¶
 static DWORD WINAPI dummy_window_thread(LPVOID *unused)
 {
 	 
@@ -135,18 +164,18 @@ static DWORD WINAPI dummy_window_thread(LPVOID *unused)
 	(void)unused;
 	return 0;
 }
-static FILE* out_file_log_ptr = NULL;
+static const char* g_ccapture_hook_file_name = "./capture_hook/ccapture_hook.log";
+
+static FILE* out_file_log_ptr = ::fopen(g_ccapture_hook_file_name, "wb+");;
 static inline void SHOW(const char* format, va_list args)
 {
-	if (!out_file_log_ptr)
-	{
-		out_file_log_ptr = ::fopen(g_ccapture_hook_file_name, "wb+");
-	}
+
 	if (!out_file_log_ptr)
 	{
 		return;
 	}
-	char message[1024] = {0};
+
+	char message[10240] = {0};
 
 	int num = _vsprintf_p(message, 1024, format, args);
 	if (num > 0)
@@ -157,7 +186,10 @@ static inline void SHOW(const char* format, va_list args)
 }
 void LOG(const char* format, ...)
 {
-	
+	if (!out_file_log_ptr)
+	{
+		return;
+	}
 	
 		va_list args;
 		va_start(args, format);
@@ -190,8 +222,7 @@ static inline void log_current_process(void)
 		MAX_PATH);
 	if (len > 0) {
 		process_name[len] = 0;
-		DEBUG_EX_LOG("capture_hook.dll loaded against process: %s",
-			process_name);
+		DEBUG_EX_LOG("capture_hook.dll loaded against process: %s", process_name);
 		 
 	}
 	else {
@@ -207,34 +238,8 @@ static inline bool init_hook(HANDLE thread_handle)
 { 
 	if (c_init())
 	{
-		//int argc = 10;
-		//char argv0[] = "chensong";
-		//char argv1[] = "-i";
-		//char argv2[] = "D:/video/test.yuv";
-		//char argv3[] = "-s";
-		//char argv4[] = "1920x1080";
-		//char argv5[] = "-codec";
-		//char argv6[] = "h264";
-		//char argv7[] = "-fps";
-		//char argv8[] = "30";
-		//char argv9[] = "-gop";
-		//char argv10[] = "30";
-		//// chensong -i .\test.yuv -s 1920x1080 -codec h264 -fps 30 -gop 30
-		//char *argv[12] =
-		//{
-		//	argv0,
-		//	argv1,
-		//	argv2,
-		//	argv3,
-		//	argv4,
-		//	argv5,
-		//	argv6,
-		//	argv7,
-		//	argv8,
-		//	argv9,
-		//	argv10,
-		//};
-		//c_test_main(argc, argv);
+		g_run = 0;
+		c_set_set_gpu_index_callback(&g_set_gpu_index_callback);
 		c_startup();
 	}
 	init_dummy_window_thread();
@@ -257,35 +262,59 @@ bool open_shared_d3d11_texture(ID3D11Device* device, uintptr_t handler, ID3D11Te
 	return true;
 }
 
-void* get_shared()
+void g_set_gpu_index_callback(uint32_t gpu_index)
 {
-	gl_video_data.handler = capture.handle;
-	return &gl_video_data;
+	g_run = 10;
+	g_gpu_index = gpu_index;
+	DEBUG_EX_LOG("set gpu index callback --> gpu_index = %u", g_gpu_index);
 }
+
+
+//void* get_shared()
+//{
+//	gl_video_data.handler = capture.handle;
+//	return &gl_video_data;
+//}
+
 
 void g_send_video_callback()
 {
+	//return;
+	if (g_capture_ptr.count != 0)
+	{
+		{
+			SYSTEMTIME t1;
+			GetSystemTime(&t1);
+			DEBUG_EX_LOG("start send cur = %u", t1.wMilliseconds);
+		}
+		if (0 != g_gpu_index || (g_capture_ptr.cur_frame_ptr && g_capture_ptr.cur_frame_ptr->fmt == DXGI_FORMAT_R10G10B10A2_UNORM))
+		{
+			if (g_capture_ptr.cur_frame_ptr && g_capture_ptr.cur_frame_ptr->capture_frame_ptr)
+			{
+				DEBUG_EX_LOG("cpu send frame  ok !!!");
+				c_cpp_rtc_video(g_capture_ptr.cur_frame_ptr->capture_frame_ptr, g_capture_ptr.cur_frame_ptr->fmt, g_capture_ptr.cur_frame_ptr->width, g_capture_ptr.cur_frame_ptr->height);
+			}
+			else
+			{
+				DEBUG_EX_LOG("send frame  failed  !!!");
+			}
+		}
+		else
+		{
+			DEBUG_EX_LOG("shared gpu send frame [g_capture_ptr.handle = %p][g_capture_ptr.fmt = %u][g_capture_ptr.width = %u][g_capture_ptr.height = %u] ok !!!", g_capture_ptr.handle, g_capture_ptr.fmt, g_capture_ptr.width, g_capture_ptr.height);
+			cpp_rtc_texture(g_capture_ptr.handle, g_capture_ptr.fmt, g_capture_ptr.width, g_capture_ptr.height);
+		}
+
+		{
+			SYSTEMTIME t1;
+			GetSystemTime(&t1);
+			DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
+		}
+
+	}
 	 
-	{
-		SYSTEMTIME t1;
-		GetSystemTime(&t1);
-		DEBUG_EX_LOG("start send cur = %u", t1.wMilliseconds);
-	}
-	if (g_d3d11_capture_ptr.cur_frame_ptr && g_d3d11_capture_ptr.cur_frame_ptr->capture_frame_ptr)
-	{
-		DEBUG_EX_LOG("send frame  ok !!!");
-		c_cpp_rtc_video(g_d3d11_capture_ptr.cur_frame_ptr->capture_frame_ptr, g_d3d11_capture_ptr.cur_frame_ptr->width, g_d3d11_capture_ptr.cur_frame_ptr->height);
-	}
-	else
-	{
-		DEBUG_EX_LOG("send frame  failed  !!!");
-	}
-	 
-	{
-		SYSTEMTIME t1;
-		GetSystemTime(&t1);
-		DEBUG_EX_LOG("cur = %u", t1.wMilliseconds);
-	}
+
+	
 	
 	
 }
@@ -364,7 +393,7 @@ static inline bool attempt_hook(void)
 			}
 		}
 	}
-	/*if ( !gl_hooked)
+	 if ( !gl_hooked)
 	{
 
 		gl_hooked = hook_gl();
@@ -373,7 +402,7 @@ static inline bool attempt_hook(void)
 			return true;
 		}
 
-	}*/
+	}
 	return false;
 }
 
@@ -398,32 +427,44 @@ static inline void capture_loop(void)
 }
 static DWORD WINAPI main_capture_thread(HANDLE thread_handle)
 {
-	// 1. ´°¿ÚÊÂ¼ş¼ì²é
+	// 1. çª—å£äº‹ä»¶æ£€æŸ¥
 	if (!init_hook(thread_handle)) 
 	{
-		DEBUG_EX_LOG(  "[%s][%d][OBS] Failed to init hook\n", __FUNCTION__, __LINE__);
-		 
+
+		ERROR_EX_LOG(  "[%s][%d][capture] Failed to init hook\n", __FUNCTION__, __LINE__);
 		return 0;
 	}
-	// 2. ¿ªÊ¼×¥È¡µ±Ç°Ö÷³ÌĞòµÄ´°¿Ú
+
+	while (g_run == 0)
+	{
+		Sleep(5);
+		DEBUG_EX_LOG("sleep [g_run = %d][g_gpu_index = %u] ...", g_run, g_gpu_index);
+	}
+	DEBUG_EX_LOG("[g_run = %d][g_gpu_index = %u]", g_run, g_gpu_index);
+
+	// 2. å¼€å§‹æŠ“å–å½“å‰ä¸»ç¨‹åºçš„çª—å£
 	capture_loop();
 	return 0;
 }
 /// <summary>
-/// ¶¯Ì¬¿âµÄÈë¿Ú
+/// åŠ¨æ€åº“çš„å…¥å£
 /// </summary>
 /// <param name="hinst"></param>
 /// <param name="reason"></param>
 /// <param name="unused1"></param>
 /// <returns></returns>
-BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, LPVOID unused1)
+ 
+__declspec(dllexport)
+BOOL APIENTRY DllMain(HINSTANCE hinst, DWORD reason, LPVOID unused1)
 {
 	
-
+	 
+ 
 	 
 	if (reason == DLL_PROCESS_ATTACH) {
+ 
 		wchar_t name[MAX_PATH];
-
+		 
 		dll_inst = hinst;
 
 
@@ -463,76 +504,113 @@ BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, LPVOID unused1)
 	}
 	else if (reason == DLL_PROCESS_DETACH) {
 		 
-
+		 
 		if (capture_thread) {
 			stop_loop = true;
 			WaitForSingleObject(capture_thread, 300);
 			CloseHandle(capture_thread);
 			 
 		}
-
+		 
 		//free_hook();
 	}
-
+	 
 	(void)unused1;
 	return true;
 }
 
 void capture_count(uint32_t count)
 {
-	capture.count = count;
+	DEBUG_EX_LOG("[count = %u]", count);
+	 g_capture_ptr.count = count;
+	 
 }
 void capture_init_shtex(HWND window, uint32_t cx, uint32_t cy, uint32_t format, HANDLE handle)
 {
+	if (handle && (cx < 100 || cy < 100))
+	{
+		WARNING_EX_LOG("[width = %u][height = %u][format = %u][handle = %p]", cx, cy, format, handle);
+		return;
+	}
 	DEBUG_EX_LOG("[width = %u][height = %u][format = %u][handle = %p]", cx, cy, format, handle);
-	capture.handle =  handle;
-	capture.width = cx;
-	capture.height = cy;
+	capture_count(0);
+	g_capture_ptr.handle =  handle;
+	g_capture_ptr.fmt = format;
+	g_capture_ptr.width = cx;
+	g_capture_ptr.height = cy;
 }
 
-void d3d11_capture_frame(unsigned char* rgba_ptr, uint32_t fmt, uint32_t width, uint32_t heigth)
+void d3d11_capture_frame(unsigned char* rgba_ptr, uint32_t fmt, uint32_t row_pitch, uint32_t depth_pitch, uint32_t width, uint32_t heigth)
 {
-	if (!g_d3d11_capture_ptr.old_frame_ptr)
+	if (!g_capture_ptr.old_frame_ptr)
 	{
-		g_d3d11_capture_ptr.old_frame_ptr = new cframe_video();
-		if (!g_d3d11_capture_ptr.old_frame_ptr)
+		g_capture_ptr.old_frame_ptr = new cframe_video();
+		if (!g_capture_ptr.old_frame_ptr)
 		{
 			WARNING_EX_LOG("alloc struct frame data failed !!!");
 			return;
 		}
-		g_d3d11_capture_ptr.old_frame_ptr->width=  width;
-		g_d3d11_capture_ptr.old_frame_ptr->height = heigth;
-		g_d3d11_capture_ptr.old_frame_ptr->capture_frame_ptr = new unsigned char[sizeof(unsigned char ) * width * heigth * 4];
-		if (!g_d3d11_capture_ptr.old_frame_ptr->capture_frame_ptr)
+		g_capture_ptr.old_frame_ptr->width=  width;
+		g_capture_ptr.old_frame_ptr->height = heigth;
+		g_capture_ptr.old_frame_ptr->capture_frame_ptr = new unsigned char[sizeof(unsigned char ) * width * heigth * 4];
+		if (!g_capture_ptr.old_frame_ptr->capture_frame_ptr)
 		{
-			delete g_d3d11_capture_ptr.old_frame_ptr;
-			g_d3d11_capture_ptr.old_frame_ptr = NULL;
+			delete g_capture_ptr.old_frame_ptr;
+			g_capture_ptr.old_frame_ptr = NULL;
 			WARNING_EX_LOG("alloc failed   frame data failed !!!");
 			return;
 		}
 	}
-	else if (g_d3d11_capture_ptr.old_frame_ptr->width != width || heigth != g_d3d11_capture_ptr.old_frame_ptr->height)
+	else if (g_capture_ptr.old_frame_ptr->width != width || heigth != g_capture_ptr.old_frame_ptr->height)
 	{
-		if (g_d3d11_capture_ptr.old_frame_ptr->capture_frame_ptr)
+		if (g_capture_ptr.old_frame_ptr->capture_frame_ptr)
 		{
-			delete[] g_d3d11_capture_ptr.old_frame_ptr->capture_frame_ptr;
-			g_d3d11_capture_ptr.old_frame_ptr->capture_frame_ptr = NULL;
+			delete[] g_capture_ptr.old_frame_ptr->capture_frame_ptr;
+			g_capture_ptr.old_frame_ptr->capture_frame_ptr = NULL;
 		}
-		g_d3d11_capture_ptr.old_frame_ptr->width = width;
-		g_d3d11_capture_ptr.old_frame_ptr->height = heigth;
-		g_d3d11_capture_ptr.old_frame_ptr->capture_frame_ptr = new unsigned char[sizeof(unsigned char) * width * heigth * 4];
-		if (!g_d3d11_capture_ptr.old_frame_ptr->capture_frame_ptr)
+		g_capture_ptr.old_frame_ptr->width = width;
+		g_capture_ptr.old_frame_ptr->height = heigth;
+		g_capture_ptr.old_frame_ptr->capture_frame_ptr = new unsigned char[sizeof(unsigned char) * width * heigth * 4];
+		if (!g_capture_ptr.old_frame_ptr->capture_frame_ptr)
 		{
-			delete g_d3d11_capture_ptr.old_frame_ptr;
-			g_d3d11_capture_ptr.old_frame_ptr = NULL;
+			delete g_capture_ptr.old_frame_ptr;
+			g_capture_ptr.old_frame_ptr = NULL;
 			WARNING_EX_LOG("reset size alloc failed   frame data failed !!!");
 			return;
 		}
 	}
-	memcpy(g_d3d11_capture_ptr.old_frame_ptr->capture_frame_ptr, rgba_ptr, static_cast<size_t>(sizeof(unsigned char) * width * heigth * 4));
-	void* ptr = g_d3d11_capture_ptr.cur_frame_ptr;
-	g_d3d11_capture_ptr.cur_frame_ptr = g_d3d11_capture_ptr.old_frame_ptr;
-	g_d3d11_capture_ptr.old_frame_ptr = (struct cframe_video*)ptr;
+	g_capture_ptr.old_frame_ptr->fmt = fmt;
+
+	if (false /*DXGI_FORMAT_R10G10B10A2_UNORM == fmt*/)
+	{
+		//DXGI_FORMAT_R10G10B10A2_UNORM ===>DXGI_FORMAT_B8G8R8A8_UNORM [A8R8G8B8]
+		//[1111 1111] [1122 2222][2222 3333][3333 3344]
+		// 
+		//[1111 1111] [2222 2222][3333 3333][4444 4444]
+		// ///
+		//[4444 4444] [1111 1111][2222 2222][3333 3333]
+		for (int y = 0; y < heigth; ++y)
+		{
+			for (int x = 0; x <  width; ++x)
+			{
+				const size_t host_data_index = y * (width *4 ) + x * 4;
+				const size_t frame_data_index = y * (width  * 4)/*data.frame->linesize[0]*/ + x * 4;
+
+				g_capture_ptr.old_frame_ptr->capture_frame_ptr[frame_data_index + 1] = (static_cast<const uint8_t*>(rgba_ptr)[host_data_index + 0]);
+				g_capture_ptr.old_frame_ptr->capture_frame_ptr[frame_data_index + 2] = (static_cast<const uint8_t*>(rgba_ptr)[host_data_index + 1]>>2);
+				g_capture_ptr.old_frame_ptr->capture_frame_ptr[frame_data_index + 3] = (static_cast<const uint8_t*>(rgba_ptr)[host_data_index + 2]>>4);
+				g_capture_ptr.old_frame_ptr->capture_frame_ptr[frame_data_index + 0] = ((static_cast<const uint8_t*>(rgba_ptr)[host_data_index + 3] >> 4)<<4);
+			}
+		}
+	}
+	else
+	{
+		memcpy(g_capture_ptr.old_frame_ptr->capture_frame_ptr, rgba_ptr, static_cast<size_t>(sizeof(unsigned char) * width * heigth * 4));
+	}
+	
+	void* ptr = g_capture_ptr.cur_frame_ptr;
+	g_capture_ptr.cur_frame_ptr = g_capture_ptr.old_frame_ptr;
+	g_capture_ptr.old_frame_ptr = (struct cframe_video*)ptr;
 	DEBUG_EX_LOG("frame copy ok !!!");
 	//std::swap(g_d3d11_capture_ptr.cur_frame_ptr, g_d3d11_capture_ptr.old_frame_ptr);
 }

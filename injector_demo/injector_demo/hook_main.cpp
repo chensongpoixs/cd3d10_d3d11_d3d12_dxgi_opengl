@@ -194,7 +194,11 @@ int  main(int argc, char* argv[])
 	WCHAR load_path[MAX_PATH] = L"";
 	GetCurrentDirectoryW(MAX_PATH,  load_path);
 	wcscat_s(load_path, L"\\");
+<<<<<<< HEAD
+	wcscat_s(load_path,   L"capture_hook64.dll");
+=======
 	wcscat_s(load_path,   L"hook_test64.dll");
+>>>>>>> master
 
 	if (GetFileAttributesW( load_path) == INVALID_FILE_ATTRIBUTES)
 	{
@@ -202,6 +206,10 @@ int  main(int argc, char* argv[])
 		return ERROR_FILE_NOT_FOUND;
 	}
 
+<<<<<<< HEAD
+	inject_library_full( 27184, load_path);
+=======
 	inject_library_full( 20516, load_path);
+>>>>>>> master
 	return 0;
 }

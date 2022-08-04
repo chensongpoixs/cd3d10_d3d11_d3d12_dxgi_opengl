@@ -1,4 +1,4 @@
-﻿#include <d3d10_1.h>
+#include <d3d10_1.h>
 #include <d3d11.h>
 #include <dxgi1_2.h>
 #include <d3dcompiler.h>
@@ -40,23 +40,18 @@ static struct dxgi_swap_data data = {};
 static int swap_chain_mismatch_count = 0;
 constexpr int swap_chain_mismtach_limit = 16;
 
-
-//static bool use_opengl = false;
-
 static bool setup_dxgi(IDXGISwapChain *swap)
 {
 	IUnknown *device;
 	HRESULT hr;
 	DEBUG_EX_LOG("");
 	hr = swap->GetDevice(__uuidof(ID3D11Device), (void **)&device);
-	if (SUCCEEDED(hr)) 
-	{
+	if (SUCCEEDED(hr)) {
 		ID3D11Device *d3d11 = static_cast<ID3D11Device *>(device);
 		D3D_FEATURE_LEVEL level = d3d11->GetFeatureLevel();
 		device->Release();
 
-		if (level >= D3D_FEATURE_LEVEL_11_0) 
-		{
+		if (level >= D3D_FEATURE_LEVEL_11_0) {
 			DEBUG_EX_LOG("Found D3D11 11.0 device on swap chain");
 
 			data.swap = swap;
@@ -190,14 +185,14 @@ static void update_mismatch_count(bool match)
 	}
 	else 
 	{
-		// 有新的d3dxx的引擎窗口了哈
 		++swap_chain_mismatch_count;
 
 		if (swap_chain_mismatch_count == swap_chain_mismtach_limit)
 		{
 			data.swap = nullptr;
 			data.capture = nullptr;
-			memset(dxgi_possible_swap_queues, 0, sizeof(dxgi_possible_swap_queues));
+			memset(dxgi_possible_swap_queues, 0,
+			       sizeof(dxgi_possible_swap_queues));
 			dxgi_possible_swap_queue_count = 0;
 			dxgi_present_attempted = false;
 
@@ -212,29 +207,14 @@ static void update_mismatch_count(bool match)
 static HRESULT STDMETHODCALLTYPE hook_present(IDXGISwapChain *swap,
 					      UINT sync_interval, UINT flags)
 {
-	if (swap)
-	{
-		DXGI_SWAP_CHAIN_DESC desc;
-		const HRESULT hr = swap->GetDesc(&desc);
-		if (FAILED(hr))
-		{
-			WARNING_EX_LOG("hook_present1: swap->GetDesc failed", hr);
-			return hr;
-		}
-		if (desc.BufferDesc.Height == 2 && desc.BufferDesc.Width == 2)
-		{
-			return  RealPresent(swap, sync_interval, flags);
-		}
-	}
 	//const bool capture_overlay = global_hook_info->capture_overlay;
 	const bool test_draw = (flags & DXGI_PRESENT_TEST) != 0;
 	DEBUG_EX_LOG("");
-	if (data.swap)
+	/*if (data.swap)
 	{
 		update_mismatch_count(swap == data.swap);
-	}
+	}*/
 
-	// 第一次解析的地方
 	if (!data.swap )
 	{
 		setup_dxgi(swap);
@@ -252,7 +232,18 @@ static HRESULT STDMETHODCALLTYPE hook_present(IDXGISwapChain *swap,
 	static uint64_t pre_millise = 0;
 	uint64_t diff = t1.wMilliseconds - pre_millise;
 	
-	 
+	/*if (capture && diff> 15)
+	{
+		DEBUG_EX_LOG("new frame !!!");
+		pre_millise = t1.wMilliseconds;
+		IUnknown *backbuffer = get_dxgi_backbuffer(swap);
+
+		if (backbuffer)
+		{
+			data.capture(swap, backbuffer);
+			backbuffer->Release();
+		}
+	}*/
 
 	dxgi_presenting = true;
 	const HRESULT hr = RealPresent(swap, sync_interval, flags);
@@ -270,11 +261,11 @@ static HRESULT STDMETHODCALLTYPE hook_present(IDXGISwapChain *swap,
 		 */
 		DEBUG_EX_LOG("new frame !!!");
 		pre_millise = t1.wMilliseconds;
-		if (resize_buffers_called) 
+		/*if (resize_buffers_called) 
 		{
 			resize_buffers_called = false;
 		} 
-		else
+		else*/ 
 		{
 			IUnknown *backbuffer = get_dxgi_backbuffer(swap);
 
@@ -295,70 +286,57 @@ hook_present1(IDXGISwapChain1 *swap, UINT sync_interval, UINT flags,
 {
 	DEBUG_EX_LOG("");
 	 
-
-	if (swap)
-	{
-		DXGI_SWAP_CHAIN_DESC desc;
-		const HRESULT hr = swap->GetDesc(&desc);
-		if (FAILED(hr))
-		{
-			WARNING_EX_LOG("hook_present1: swap->GetDesc failed", hr);
-			return hr;
-		}
-		if (desc.BufferDesc.Height == 2 && desc.BufferDesc.Width == 2)
-		{
-			return RealPresent1(swap, sync_interval, flags, params);
-		}
-	}
 	const bool test_draw = (flags & DXGI_PRESENT_TEST) != 0;
 
-	if (data.swap) 
+	/*if (data.swap) 
 	{
 		update_mismatch_count(swap == data.swap);
-	}
+	}*/
 
 	if (!data.swap  ) 
 	{
 		setup_dxgi(swap);
 	}
-	
+
 	WARNING_EX_LOG(
 		"Present1 callback: sync_interval=%u, flags=%u, current_swap=0x%" PRIX64
 		", expected_swap=0x%" PRIX64,
 		sync_interval, flags, swap, data.swap);
 	const bool capture = !test_draw && swap == data.swap && !!data.capture;
-	SYSTEMTIME t1;
-	GetSystemTime(&t1);
-	DEBUG_EX_LOG("capture = %u -->> start cur = %u", capture, t1.wMilliseconds);
-	static uint64_t pre_millise = 0;
-	uint64_t diff = t1.wMilliseconds - pre_millise;
-	 
+	if (capture) 
+	{
+		IUnknown *backbuffer = get_dxgi_backbuffer(swap); 
+		if (backbuffer) 
+		{
+			DXGI_SWAP_CHAIN_DESC1 desc;
+			swap->GetDesc1(&desc);
+			data.capture(swap, backbuffer);
+			backbuffer->Release();
+		}
+	}
 
 	dxgi_presenting = true;
 	const HRESULT hr = RealPresent1(swap, sync_interval, flags, params);
 	dxgi_presenting = false;
 	dxgi_present_attempted = true;
 
-	if (capture && diff > 15)
-	{
-//>>>>>>> b5a2a73c8d165c99ef70c41948300d7e8e9bf805
-		if (resize_buffers_called) 
-		{
-			resize_buffers_called = false;
-		}
-		else
-		{
-			DEBUG_EX_LOG("new frame !!!");
-			pre_millise = t1.wMilliseconds;
-			IUnknown *backbuffer = get_dxgi_backbuffer(swap);
+	//if (capture  )
+	//{
+	//	/*if (resize_buffers_called) 
+	//	{
+	//		resize_buffers_called = false;
+	//	} 
+	//	else */
+	//	{
+	//		IUnknown *backbuffer = get_dxgi_backbuffer(swap);
 
-			if (backbuffer) 
-			{
-				data.capture(swap, backbuffer);
-				backbuffer->Release();
-			}
-		}
-	}
+	//		if (backbuffer) 
+	//		{
+	//			data.capture(swap, backbuffer);
+	//			backbuffer->Release();
+	//		}
+	//	}
+	//}
 
 	return hr;
 }
