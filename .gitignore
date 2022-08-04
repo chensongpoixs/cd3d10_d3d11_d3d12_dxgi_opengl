@@ -18,3 +18,44 @@ RenderOffScreen/.vs
 # Project files, i.e. `.project`, `.actionScriptProperties` and `.flexProperties`
 # should NOT be excluded as they contain compiler settings and other important
 # information for Eclipse / Flash Builder.
+
+
+
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+D3D11DEMO/.vs/
+D3D11DEMO/D3D11DEMO2/Debug/
+D3D11DEMO/Debug/
+D3D11DEMO/x64/Debug/
+D3D11DEMO/D3D11DEMO/x64/Debug/
