@@ -287,7 +287,7 @@ void g_send_video_callback()
 			GetSystemTime(&t1);
 			DEBUG_EX_LOG("start send cur = %u", t1.wMilliseconds);
 		}
-		if (0 != g_gpu_index || (g_capture_ptr.cur_frame_ptr && g_capture_ptr.cur_frame_ptr->fmt == DXGI_FORMAT_R10G10B10A2_UNORM))
+		if (0 != g_gpu_index /*|| (g_capture_ptr.cur_frame_ptr && g_capture_ptr.cur_frame_ptr->fmt == DXGI_FORMAT_R10G10B10A2_UNORM)*/)
 		{
 			if (g_capture_ptr.cur_frame_ptr && g_capture_ptr.cur_frame_ptr->capture_frame_ptr)
 			{

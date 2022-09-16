@@ -104,8 +104,16 @@ static bool create_d3d11_tex(uint32_t cx, uint32_t cy, ID3D11Texture2D **tex,
 	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	desc.SampleDesc.Count = 1;
 	desc.Usage = D3D11_USAGE_DEFAULT;
-	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
-	//desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX; //»áºÚÆÁµÄ¹þ 
+	//
+	if (g_gpu_index != 0)
+	{
+		desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+	}
+	else 
+	{ 
+		desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+	}
+	 
 
 
 	////////////////////////
@@ -241,7 +249,7 @@ static inline void d3d11_copy_texture(ID3D11Resource *dst, ID3D11Resource *src)
 		data.context->CopyResource(dst, src);
 	}
 
-	if (true/*g_gpu_index != 0*/)
+	if ( g_gpu_index != 0 )
 	{
 		{
 			SYSTEMTIME t1;
