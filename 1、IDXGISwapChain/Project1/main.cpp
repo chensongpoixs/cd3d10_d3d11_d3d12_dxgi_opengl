@@ -1,11 +1,32 @@
-﻿#include <windows.h>
+﻿#define _CRT_SECURE_NO_WARNINGS
+#include <windows.h>
 #include <d3d11.h>
 //#include <DxErr.h>
 //#include <D3DX11.h>
 #include <d3d11.h>
 #include <iostream>
 #include <stdio.h>
-
+#include <dxgi.h>
+#include <d3d11.h>
+#include <windows.h>
+#include <d3d11.h>
+//#include <DxErr.h>
+//#include <D3DX11.h>
+#include <d3d11.h>
+//#include <iostream>
+#include <stdio.h>
+#include <dxgi.h>
+#include <d3d11.h>
+#include <dxgi1_2.h>
+#include <string>
+#include <ctime>
+//////////////////////////////////////////////////////////
+IDXGIFactory1* g_factory = NULL;
+IDXGIAdapter* g_adapter = NULL;
+uint32_t g_gpu_index = 4;
+static std::string log_name = std::string("gpu_") + std::to_string(::time(NULL)) + ".log";
+static FILE * out_file_ptr = fopen(log_name.c_str(), "wb+");
+//////////////////////////////////////////////////////////
 HINSTANCE g_hInstance = NULL;
 HWND g_hWnd = NULL;
 //CHAR[] g_name = L"FirstD3D11Demo";
@@ -76,7 +97,9 @@ HRESULT InitWindow(HINSTANCE hInstance, int nCmdShow)
 	g_hWnd = CreateWindowEx(WS_EX_APPWINDOW, "FirstD3D11Demo", "FirstD3D11Demo", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
 		rc.right - rc.left, rc.bottom - rc.top, NULL, NULL, g_hInstance, NULL);
 	if (!g_hWnd)
+	{
 		return E_FAIL;
+	}
 
 	ShowWindow(g_hWnd, nCmdShow);
 
@@ -146,11 +169,58 @@ HRESULT InitDevice()
 	sd.Windowed = TRUE;                              //是否全屏
 	//sd.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 
+	{
+		//static const GUID GUID_IDXGIFactory1 =
+		//{ 0x770aae78, 0xf26f, 0x4dba, {0xa8, 0x29, 0x25, 0x3c, 0x83, 0xd1, 0xb3, 0x87} };
+		//CreateDXGIFactory1(&GUID_IDXGIFactory1, (void**)&g_factory);
+		hResult = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&g_factory);
+		if (FAILED(hResult))
+		{
+			return NULL;
+		}
+
+		hResult = g_factory->EnumAdapters(g_gpu_index, &g_adapter);
+		if (FAILED(hResult))
+		{
+
+			return NULL;
+		}
+		char desc[128] = { 0 };
+		DXGI_ADAPTER_DESC adapterDesc;
+		g_adapter->GetDesc(&adapterDesc);
+		wcstombs(desc, adapterDesc.Description, sizeof(desc));
+		if (strstr(desc, "NVIDIA") != NULL)
+		{
+			/*hr = D3D11CreateDevice(g_adapter, D3D_DRIVER_TYPE_UNKNOWN, NULL, 0, NULL, 0, D3D11_SDK_VERSION,
+				&enc->d3d11_device, nullptr, &enc->d3d11_context);*/
+				//enc->adapter->Release();
+				//enc->adapter = nullptr;
+				//if (SUCCEEDED(hr))
+			if (out_file_ptr)
+			{
+
+				fprintf(out_file_ptr, "use gpu info g_gpu_index = %u ok \n", g_gpu_index);
+				fflush(out_file_ptr);
+
+			}
+		}
+		else
+		{
+			if (out_file_ptr)
+			{
+				fprintf(out_file_ptr, "[g_gpu_index = %u]  not NVIDIA  [desc = %s] failed !!! \n", g_gpu_index, desc);
+				fflush(out_file_ptr);
+			}
+			
+			 
+		}
+		//g_adapter->EnumOutputs();
+	}
 	//for (UINT driverTypeIndex = 0; driverTypeIndex < numDriverTypes; ++driverTypeIndex)
 	{
-		g_driverType = driverTypes[0];
+		g_driverType = D3D_DRIVER_TYPE_UNKNOWN; // driverTypes[0];//D3D_DRIVER_TYPE_UNKNOWN;//
 		hResult = D3D11CreateDeviceAndSwapChain(
-			NULL,                                //默认图形适配器
+			g_adapter,                                //默认图形适配器
 			g_driverType,                        //驱动类型
 			NULL,                                //实现软件渲染设备的动态库句柄，如果使用的驱动设备类型是软件设备则不能为NULL
 			createDeviceFlags,                    //创建标志，0用于游戏发布，一般D3D11_CREATE_DEVICE_DEBUG允许我们创建可供调试的设备，在开发中比较有用
@@ -170,7 +240,9 @@ HRESULT InitDevice()
 		//	break;
 	}
 	if (FAILED(hResult))
+	{
 		return hResult;
+	}
 
 	//创建渲染目标视图
 	ID3D11Texture2D *pBackBuffer = NULL;
@@ -200,7 +272,11 @@ HRESULT InitDevice()
 	vp.TopLeftX = 0;
 	vp.TopLeftY = 0;
 	g_pImmediateContext->RSSetViewports(1, &vp);
-
+	if (g_adapter)
+	{
+		g_adapter->Release();
+		g_adapter = NULL;
+	 }
 	return S_OK;
 }
 
@@ -225,7 +301,11 @@ void Render()
 		g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
 	}
 
-
+	if (out_file_ptr)
+	{
+		fprintf(out_file_ptr, "[%s][%s][%d]\n", __FILE__, __FUNCTION__, __LINE__);
+		fflush(out_file_ptr);
+	}
 	//ShowWindow(g_hWnd, SW_HIDE);
 
 	g_pSwapChain->Present(0, 0);

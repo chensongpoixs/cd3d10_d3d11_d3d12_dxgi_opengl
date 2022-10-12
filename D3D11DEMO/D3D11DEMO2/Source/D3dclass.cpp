@@ -88,24 +88,41 @@ bool D3DClass::Initialize(int screenWidth, int screenHeight, bool vsync, HWND hw
 	}
 	else
 	{
-
-		fprintf(out_file_ptr, "[g_gpu_index = %u]  not NVIDIA  [desc = %s] failed !!! \n", g_gpu_index, desc);
-		fflush(out_file_ptr);
+		if (out_file_ptr)
+		{
+			fprintf(out_file_ptr, "[g_gpu_index = %u]  not NVIDIA  [desc = %s] failed !!! \n", g_gpu_index, desc);
+			fflush(out_file_ptr);
+		}
 	}
+	
 	// Enumerate the primary adapater output (monitor).
-	result = adapter->EnumOutputs(0, &adapterOutput);
+	result = adapter->EnumOutputs(g_monitor_index, &adapterOutput);
 	if (FAILED(result))
 	{
+		if (out_file_ptr)
+		{
+			fprintf(out_file_ptr, "monitor [g_monitor_index = %u]    failed !!! \n", g_monitor_index );
+			fflush(out_file_ptr);
+		}
 		return false;
 	}
-
+	if (out_file_ptr)
+	{
+		fprintf(out_file_ptr, "monitor [g_monitor_index = %u]    ok !!! \n", g_monitor_index);
+		fflush(out_file_ptr);
+	}
 	// Get the number of modes that fit the DXGI_FORMAT_R8G8B8A8_UNORM display format for the adapter output (monitor).
 	result = adapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, NULL);
 	if (FAILED(result))
 	{
+		if (out_file_ptr)
+		{
+			fprintf(out_file_ptr, "monitor [g_monitor_index = %u]    GetDisplayModeList failed  !!! \n", g_monitor_index);
+			fflush(out_file_ptr);
+		}
 		return false;
 	}
-
+	
 	// Create a list to hold all the possible display modes for this monitor/video card combination.
 	displayModeList = new DXGI_MODE_DESC[numModes];
 	if (!displayModeList)
@@ -151,21 +168,7 @@ bool D3DClass::Initialize(int screenWidth, int screenHeight, bool vsync, HWND hw
 		return false;
 	}
 
-	// Release the display model list.
-	delete [] displayModeList;
-	displayModeList = nullptr;
-
-	// Release the adapter output.
-	adapterOutput->Release();
-	adapterOutput = nullptr;
-
-	// Release the adapter.
-	adapter->Release();
-	adapter = nullptr;
-
-	// Release the factory.
-	factory->Release();
-	factory = nullptr;
+	
 
 	// Initialize the swap chain description.
 	ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
@@ -226,7 +229,7 @@ bool D3DClass::Initialize(int screenWidth, int screenHeight, bool vsync, HWND hw
 	featureLevel = D3D_FEATURE_LEVEL_11_0;
 
 	// Create the swap chain, Direct3D device, and Direct3D device context.
-	result = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, NULL, &featureLevel, 1, D3D11_SDK_VERSION,
+	result = D3D11CreateDeviceAndSwapChain(adapter, D3D_DRIVER_TYPE_UNKNOWN, NULL, NULL, &featureLevel, 1, D3D11_SDK_VERSION,
 		&swapChainDesc, &m_swapChain, &m_device, NULL, &m_deviceContext);
 	if (FAILED(result))
 	{
@@ -372,7 +375,21 @@ bool D3DClass::Initialize(int screenWidth, int screenHeight, bool vsync, HWND hw
 	// Create an orthographic projection matrix for 2D rendering.
 	// like user interfaces on the screen allow us to skip the 3D rendering.
 	m_orthoMatrix = XMMatrixOrthographicLH((float)screenWidth, (float)screenHeight, screenNear, screenDepth);
+	// Release the display model list.
+	delete[] displayModeList;
+	displayModeList = nullptr;
 
+	// Release the adapter output.
+	adapterOutput->Release();
+	adapterOutput = nullptr;
+
+	// Release the adapter.
+	adapter->Release();
+	adapter = nullptr;
+
+	// Release the factory.
+	factory->Release();
+	factory = nullptr;
 	return true;
 }
 
