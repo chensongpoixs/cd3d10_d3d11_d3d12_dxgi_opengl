@@ -7,7 +7,7 @@
 #include "ccapture_hook.h"
 #include "cd3dxx.h"
 #include <detours.h>
-#include "C:\Work\cabroad_server\Server\Robot\ccloud_rendering_c.h"
+#include "ccloud_rendering_c.h"
 typedef HRESULT(STDMETHODCALLTYPE *present_t)(IDirect3DDevice9 *, CONST RECT *,
 					      CONST RECT *, HWND,
 					      CONST RGNDATA *);

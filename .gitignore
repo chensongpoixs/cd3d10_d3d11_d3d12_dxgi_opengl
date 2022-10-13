@@ -85,3 +85,4 @@ RenderOffScreen/x64/*
 RenderOffScreen/RenderOffScreen_demo2/RenderOffScreen_demo2.vcxproj.user
 Win32CaptureSample/Win32CaptureSample/chensong.rgb
 cuda/cuda/x64/*
+OpenGL_Hook/vsout/*

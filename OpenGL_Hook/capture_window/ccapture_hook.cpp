@@ -17,7 +17,7 @@
 #include "capture.h"
 #include <chrono>
 #include <string>
-#include "C:\Work\cabroad_server\Server\Robot\ccloud_rendering_c.h"
+#include "ccloud_rendering_c.h"
 #include "cd3dxx.h"
 
 struct gl_read_video
