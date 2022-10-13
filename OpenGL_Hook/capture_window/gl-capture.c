@@ -444,16 +444,16 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 	desc.Format = data.format;
 	desc.SampleDesc.Count = 1;
 	desc.Usage = D3D11_USAGE_DEFAULT;
-	if (0 != g_gpu_index)
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	/*if (0 != g_gpu_index)
 	{
 		desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 	} 
 	else
 	{
 		desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
-	}
-
-	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	} */
+	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 	hr = ID3D11Device_CreateTexture2D(data.d3d11_device, &desc, NULL, &data.d3d11_tex);
 	if (FAILED(hr))
 	{

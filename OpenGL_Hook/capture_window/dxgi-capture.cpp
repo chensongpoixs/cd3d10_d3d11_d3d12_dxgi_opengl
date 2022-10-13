@@ -259,7 +259,7 @@ static HRESULT STDMETHODCALLTYPE hook_present(IDXGISwapChain *swap,
 	dxgi_presenting = false;
 	dxgi_present_attempted = true;
 
-	if (capture && diff > 15)
+	if (capture )
 	{
 		/*
 		 * It seems that the first call to Present after ResizeBuffers
@@ -339,7 +339,7 @@ hook_present1(IDXGISwapChain1 *swap, UINT sync_interval, UINT flags,
 	dxgi_presenting = false;
 	dxgi_present_attempted = true;
 
-	if (capture && diff > 15)
+	if (capture  )
 	{
 //>>>>>>> b5a2a73c8d165c99ef70c41948300d7e8e9bf805
 		if (resize_buffers_called) 

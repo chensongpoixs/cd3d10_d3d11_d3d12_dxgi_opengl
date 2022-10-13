@@ -43,6 +43,7 @@
     <ProjectGuid>{12DA5216-9676-44DD-AACE-E5797AA1C811}</ProjectGuid>
     <RootNamespace>capturewindow</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.20348.0</WindowsTargetPlatformVersion>
+    <ProjectName>capture_hook</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

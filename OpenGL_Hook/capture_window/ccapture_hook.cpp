@@ -19,7 +19,7 @@
 #include <string>
 #include "ccloud_rendering_c.h"
 #include "cd3dxx.h"
-
+#include <ctime>
 struct gl_read_video
 {
 	int ready;
@@ -164,9 +164,10 @@ static DWORD WINAPI dummy_window_thread(LPVOID *unused)
 	(void)unused;
 	return 0;
 }
-static const char* g_ccapture_hook_file_name = "./capture_hook/ccapture_hook.log";
+ 
+static const std::string  g_ccapture_hook_file_name = "./capture_hook/" + std::to_string(::time(NULL)) + "_ccapture_hook.log";
 
-static FILE* out_file_log_ptr = ::fopen(g_ccapture_hook_file_name, "wb+");;
+static FILE* out_file_log_ptr = ::fopen(g_ccapture_hook_file_name.c_str(), "wb+");;
 static inline void SHOW(const char* format, va_list args)
 {
 

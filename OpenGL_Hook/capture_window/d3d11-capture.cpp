@@ -105,16 +105,16 @@ static bool create_d3d11_tex(uint32_t cx, uint32_t cy, ID3D11Texture2D **tex,
 	desc.SampleDesc.Count = 1;
 	desc.Usage = D3D11_USAGE_DEFAULT;
 	//
-	if (g_gpu_index != 0)
+	/*if (g_gpu_index != 0)
 	{
 		desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 	}
 	else 
 	{ 
-		desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
-	}
+		desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
+	}*/
 	 
-
+	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 
 	////////////////////////
 	//D3D11_TEXTURE2D_DESC bufferTextureDesc = { 0 };
@@ -141,18 +141,17 @@ static bool create_d3d11_tex(uint32_t cx, uint32_t cy, ID3D11Texture2D **tex,
 	{
 		DEBUG_EX_LOG("set shared GPU !!!");
 		IDXGIResource *dxgi_res;
-		hr = (*tex)->QueryInterface(__uuidof(IDXGIResource),
-					    (void **)&dxgi_res);
-		if (FAILED(hr)) {
-			WARNING_EX_LOG("create_d3d11_tex: failed to query "
-				"IDXGIResource interface from texture",
-				hr);
+		hr = (*tex)->QueryInterface(__uuidof(IDXGIResource), (void **)&dxgi_res);
+		if (FAILED(hr)) 
+		{
+			WARNING_EX_LOG("create_d3d11_tex: failed to query IDXGIResource interface from texture", hr);
 			return false;
 		}
 		// µÃµ½¹²ÏíGPU¾ä±ú
 		hr = dxgi_res->GetSharedHandle(handle);
 		dxgi_res->Release();
-		if (FAILED(hr)) {
+		if (FAILED(hr)) 
+		{
 			WARNING_EX_LOG("create_d3d11_tex: failed to get shared handle",
 				hr);
 			return false;
