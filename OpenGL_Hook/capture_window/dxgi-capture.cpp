@@ -8,9 +8,9 @@
 #include "ccapture_hook.h"
 #include <detours.h>
 #include "cd3dxx.h"
-#if COMPILE_D3D12_HOOK
+ 
 #include <d3d12.h>
-#endif
+ 
 
 typedef ULONG(STDMETHODCALLTYPE *release_t)(IUnknown *);
 typedef HRESULT(STDMETHODCALLTYPE *resize_buffers_t)(IDXGISwapChain *, UINT,
@@ -25,7 +25,7 @@ resize_buffers_t RealResizeBuffers = nullptr;
 present_t RealPresent = nullptr;
 present1_t RealPresent1 = nullptr;
 
-thread_local bool dxgi_presenting = false;
+thread_local int dxgi_presenting = false;
 struct ID3D12CommandQueue *dxgi_possible_swap_queues[8]{};
 size_t dxgi_possible_swap_queue_count;
 bool dxgi_present_attempted = false;
@@ -90,16 +90,17 @@ static bool setup_dxgi(IDXGISwapChain *swap)
 		return true;
 	}
 
-#if COMPILE_D3D12_HOOK
+ 
+ 
 	hr = swap->GetDevice(__uuidof(ID3D12Device), (void **)&device);
 	if (SUCCEEDED(hr)) {
 		device->Release();
 
-		hlog("Found D3D12 device on swap chain: swap=0x%" PRIX64
+		DEBUG_EX_LOG("Found D3D12 device on swap chain: swap=0x%" PRIX64
 		     ", device=0x%" PRIX64,
 		     (uint64_t)(uintptr_t)swap, (uint64_t)(uintptr_t)device);
 		for (size_t i = 0; i < dxgi_possible_swap_queue_count; ++i) {
-			hlog("    queue=0x%" PRIX64,
+			DEBUG_EX_LOG("    queue=0x%" PRIX64,
 			     (uint64_t)(uintptr_t)dxgi_possible_swap_queues[i]);
 		}
 
@@ -110,7 +111,7 @@ static bool setup_dxgi(IDXGISwapChain *swap)
 			return true;
 		}
 	}
-#endif
+ 
 
 	ERROR_EX_LOG("Failed to setup DXGI");
 	return false;

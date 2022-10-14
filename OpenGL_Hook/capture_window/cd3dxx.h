@@ -22,7 +22,7 @@ extern "C" {
  
 extern bool hook_d3d9(void);
 extern bool hook_dxgi(void);
-
+extern bool hook_d3d12(void);
 #ifdef __cplusplus
 }
 #endif

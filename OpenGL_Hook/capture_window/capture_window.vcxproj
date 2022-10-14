@@ -22,6 +22,7 @@
     <ClCompile Include="ccapture_hook.cpp" />
     <ClCompile Include="d3d10-capture.cpp" />
     <ClCompile Include="d3d11-capture.cpp" />
+    <ClCompile Include="d3d12-capture.cpp" />
     <ClCompile Include="d3d9-capture.cpp" />
     <ClCompile Include="dxgi-capture.cpp" />
     <ClCompile Include="gl-capture.c" />

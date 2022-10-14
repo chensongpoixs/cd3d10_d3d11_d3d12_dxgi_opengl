@@ -129,7 +129,8 @@ extern void d3d10_capture(void* swap, void* backbuffer);
 extern void d3d10_free(void);
 extern void d3d11_capture(void* swap, void* backbuffer);
 extern void d3d11_free(void);
-
+extern void d3d12_capture(void* swap, void* backbuffer);
+extern void d3d12_free(void);
 static inline HMODULE load_system_library(const char* name)
 {
 	char base_path[MAX_PATH];

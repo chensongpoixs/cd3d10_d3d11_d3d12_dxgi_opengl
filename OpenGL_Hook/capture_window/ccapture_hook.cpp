@@ -377,7 +377,10 @@ static inline bool attempt_hook(void)
 			}
 		}
 	}*/
-
+	if (!d3d12_hooked) 
+	{
+		d3d12_hooked = hook_d3d12();
+	}
 	if (!dxgi_hooked)
 	{
 		if (!dxgi_hookable())
