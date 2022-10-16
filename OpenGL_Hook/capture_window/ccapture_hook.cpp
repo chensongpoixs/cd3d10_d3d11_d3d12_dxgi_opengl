@@ -538,6 +538,11 @@ void capture_init_shtex(HWND window, uint32_t cx, uint32_t cy, uint32_t format, 
 	}
 	DEBUG_EX_LOG("[width = %u][height = %u][format = %u][handle = %p]", cx, cy, format, handle);
 	capture_count(0);
+	if (window)
+	{
+		cpp_set_main_window(window);
+	}
+	
 	g_capture_ptr.handle =  handle;
 	g_capture_ptr.fmt = format;
 	g_capture_ptr.width = cx;
