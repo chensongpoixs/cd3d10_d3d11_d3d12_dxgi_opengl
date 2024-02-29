@@ -156,6 +156,11 @@ static inline HMODULE get_system_module(const char* module)
 	strcat(base_path, module);
 	return GetModuleHandleA(base_path);
 }
+//static inline HMODULE get_system_module(const char* system_path, const char* module)
+//{
+//	
+//	return GetModuleHandleA(base_path);
+//}
  
 void g_set_gpu_index_callback(uint32_t gpu_index);
  
@@ -182,6 +187,7 @@ void g_send_video_callback();
  
 
 #ifdef __cplusplus
+
 
 
 

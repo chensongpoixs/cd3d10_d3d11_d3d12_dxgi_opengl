@@ -219,7 +219,7 @@ void send_video_data()
 	{
 		c_cpp_rtc_video(data.shard_buffer[0], data.cx, data.cy);
 	}
-	else
+		else
 	{
 		c_cpp_rtc_texture((void*)get_shared(), data.cx, data.cy);
 
@@ -481,6 +481,7 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 	}
 	
 	if (0 != g_gpu_index)
+	//if (false)
 	{
 		// TODO@chensong 20220722 shard gpu 方案一 
 		D3D11_TEXTURE2D_DESC bufferTextureDesc = { 0 };
@@ -770,6 +771,7 @@ static void gl_shtex_capture(void)
 
 
 	if (0 != g_gpu_index)
+	//if (false)
 	{
 		{
 			SYSTEMTIME t1;

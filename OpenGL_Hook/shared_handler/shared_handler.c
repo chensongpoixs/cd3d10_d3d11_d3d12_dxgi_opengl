@@ -29,6 +29,7 @@ struct gl_data
 		ID3D11Device* d3d11_device;
 		ID3D11DeviceContext* d3d11_context;
 		ID3D11Texture2D* d3d11_tex; 
+		ID3D11Texture2D* d3d11_tex_video;
 		IDXGISwapChain* dxgi_swap;
 		HANDLE gl_device;
 		HANDLE gl_dxobj;
@@ -95,7 +96,7 @@ static inline bool gl_error(const char* func, const char* str)
 	GLenum error = glGetError();
 	if (error != 0)
 	{
-		//ERROR_EX_LOG("%s: %s: %lu", func, str, error);
+		ERROR_EX_LOG("%s: %s: %lu\n", func, str, error);
 		return true;
 	}
 
@@ -427,7 +428,37 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 		return false;
 	}
 
+	// TODO@chensong 20220722 shard gpu 方案一 
+	D3D11_TEXTURE2D_DESC bufferTextureDesc = { 0 };
+	bufferTextureDesc.Width = data.cx;
+	bufferTextureDesc.Height = data.cy;
+	bufferTextureDesc.MipLevels = 1;
+	bufferTextureDesc.ArraySize = 1;
 
+	bufferTextureDesc.SampleDesc.Count = 1;
+
+	bufferTextureDesc.Format = data.format;
+	bufferTextureDesc.BindFlags = 0;
+	bufferTextureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	bufferTextureDesc.MiscFlags = 0;
+	bufferTextureDesc.Usage = D3D11_USAGE_STAGING;
+
+
+
+	hr = ID3D11Device_CreateTexture2D(data.d3d11_device, &bufferTextureDesc, NULL, &data.d3d11_tex_video);
+	if (FAILED(hr))
+	{
+
+		ERROR_EX_LOG("create shared mem texture 2D failed !!!");
+		return false;
+	}
+
+
+
+	 
+
+	//DEBUG_EX_LOG("not use shared gpu index = %u", g_gpu_index);
+	return true;
 	return true;
 }
 
@@ -621,8 +652,47 @@ static void gl_shtex_capture(void)
 
 
 	IDXGISwapChain_Present(data.dxgi_swap, 0, 0);
-	 
+	return;
 	//++read_cpu;
+
+	ID3D11DeviceContext_CopyResource(data.d3d11_context, (ID3D11Resource*)data.d3d11_tex_video, (ID3D11Resource*)data.d3d11_tex);
+
+	HRESULT hr;
+	D3D11_MAPPED_SUBRESOURCE mapd;
+	UINT subResource = 0;
+	//D3D11CalcSubresource(0, 0, 1);
+	hr = ID3D11DeviceContext_Map(data.d3d11_context, (ID3D11Resource*)data.d3d11_tex_video, subResource, D3D11_MAP_READ, 0, &mapd);
+	if (FAILED(hr))
+	{
+		ERROR_EX_LOG("[%s][%d][ID3D11DeviceContext_Map][ERROR]\n", __FUNCTION__, __LINE__);
+
+		return;
+	}
+	 size_t rgba_size = data.cx * data.cy * 4;
+
+	// filp
+
+	//if (data.shard_buffer[1])
+	{
+		 static FILE* out_file_ptr = NULL; // ::fopen("chnesong.yuv", "wb+");
+		 if (!out_file_ptr)
+		 {
+			 out_file_ptr = fopen("chnesong.yuv", "wb+");
+		 }
+		 else
+		 {
+			 fwrite(mapd.pData, 1, rgba_size, out_file_ptr);
+			 fflush(out_file_ptr);
+		 }
+		//d3d11_capture_frame(mapd.pData, data.format, mapd.RowPitch, mapd.DepthPitch, data.cx, data.cy);
+		/*memcpy(data.shard_buffer[1], mapd.pData, rgba_size);
+		uint8_t* temp_ptr = data.shard_buffer[0];
+		data.shard_buffer[0] = data.shard_buffer[1];
+		data.shard_buffer[1] = temp_ptr;*/
+	}
+
+	ID3D11DeviceContext_Unmap(data.d3d11_context, (ID3D11Resource*)data.d3d11_tex_video, subResource);
+	 
 	return;
 
 }

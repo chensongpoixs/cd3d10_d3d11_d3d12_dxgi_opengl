@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.32413.511
+# Visual Studio 15
+VisualStudioVersion = 15.0.33026.149
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "capture_window", "capture_window\capture_window.vcxproj", "{12DA5216-9676-44DD-AACE-E5797AA1C811}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "capture_hook", "capture_window\capture_window.vcxproj", "{12DA5216-9676-44DD-AACE-E5797AA1C811}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "input_device_driver", "input_device_driver\input_device_driver.vcxproj", "{ECE23085-AF79-4E93-8EE1-8B9C2B92504E}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shared_handler", "shared_handler\shared_handler.vcxproj", "{CAD8C3F5-63B0-421D-AD81-6E07C38435FE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,6 +33,14 @@ Global
 		{ECE23085-AF79-4E93-8EE1-8B9C2B92504E}.Release|x64.Build.0 = Release|x64
 		{ECE23085-AF79-4E93-8EE1-8B9C2B92504E}.Release|x86.ActiveCfg = Release|Win32
 		{ECE23085-AF79-4E93-8EE1-8B9C2B92504E}.Release|x86.Build.0 = Release|Win32
+		{CAD8C3F5-63B0-421D-AD81-6E07C38435FE}.Debug|x64.ActiveCfg = Debug|x64
+		{CAD8C3F5-63B0-421D-AD81-6E07C38435FE}.Debug|x64.Build.0 = Debug|x64
+		{CAD8C3F5-63B0-421D-AD81-6E07C38435FE}.Debug|x86.ActiveCfg = Debug|Win32
+		{CAD8C3F5-63B0-421D-AD81-6E07C38435FE}.Debug|x86.Build.0 = Debug|Win32
+		{CAD8C3F5-63B0-421D-AD81-6E07C38435FE}.Release|x64.ActiveCfg = Release|x64
+		{CAD8C3F5-63B0-421D-AD81-6E07C38435FE}.Release|x64.Build.0 = Release|x64
+		{CAD8C3F5-63B0-421D-AD81-6E07C38435FE}.Release|x86.ActiveCfg = Release|Win32
+		{CAD8C3F5-63B0-421D-AD81-6E07C38435FE}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

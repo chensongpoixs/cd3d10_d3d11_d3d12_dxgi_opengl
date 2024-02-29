@@ -20,6 +20,8 @@
 #include "ccloud_rendering_c.h"
 #include "cd3dxx.h"
 #include <ctime>
+#include "include/detours.h"
+#include <shellapi.h>
 struct gl_read_video
 {
 	int ready;
@@ -450,6 +452,107 @@ static DWORD WINAPI main_capture_thread(HANDLE thread_handle)
 	capture_loop();
 	return 0;
 }
+
+static  HMODULE  userdll32_ptr = NULL;
+
+typedef BOOL(WINAPI* PFN_EnumDisplaySettingsA)(_In_opt_ LPCSTR lpszDeviceName, _In_ DWORD iModeNum, _Inout_ DEVMODEA* lpDevMode);
+PFN_EnumDisplaySettingsA RealEnumDisplaySettingsA;
+typedef BOOL(WINAPI* PFN_EnumDisplaySettingsW)(_In_opt_ LPCSTR lpszDeviceName, _In_ DWORD iModeNum, _Inout_ DEVMODEA* lpDevMode);
+PFN_EnumDisplaySettingsW RealEnumDisplaySettingsW;
+
+std::string WcharTochar(const std::wstring& wp, size_t m_encode = CP_ACP)
+{
+	std::string str;
+	int32_t len = WideCharToMultiByte(m_encode, 0, wp.c_str(), wp.size(), NULL, 0, NULL, NULL);
+	str.resize(len);
+	WideCharToMultiByte(m_encode, 0, wp.c_str(), wp.size(), (LPSTR)(str.data()), len, NULL, NULL);
+	return str;
+}
+static BOOL hook_EnumDisplaySettingsA(_In_opt_ LPCSTR lpszDeviceName, _In_ DWORD iModeNum, _Inout_ DEVMODEA* lpDevMode)
+{
+	 
+	BOOL ret = RealEnumDisplaySettingsA(lpszDeviceName, iModeNum, lpDevMode);
+	if (ret)
+	{
+		//::GetCommandLineA();
+		LPWSTR* szArglist;
+		int nArgs;
+		szArglist = ::CommandLineToArgvW(GetCommandLineW(), &nArgs);
+		int32_t width = 1920;
+		int32_t height = 1080;
+		if (nArgs > 14)
+		{
+			// 0 0 1920 1040
+			// 11 12 13 14
+			width = ::atoi((const char*)(WcharTochar(szArglist[13]).c_str()));
+			height = ::atoi((const char*)(WcharTochar(szArglist[14]).c_str()));
+			//NORMAL_EX_LOG("width  = %u, height = %u", width, height);
+			lpDevMode->dmPelsWidth = width;
+			lpDevMode->dmPelsHeight = height;
+		}
+
+	}
+	return ret;
+}
+static BOOL hook_EnumDisplaySettingsW(_In_opt_ LPCSTR lpszDeviceName, _In_ DWORD iModeNum, _Inout_ DEVMODEA* lpDevMode)
+{
+	 
+	BOOL ret = RealEnumDisplaySettingsW(lpszDeviceName, iModeNum, lpDevMode);
+	if (ret)
+	{
+		LPWSTR* szArglist;
+		int nArgs;
+		szArglist = ::CommandLineToArgvW(GetCommandLineW(), &nArgs);
+		int32_t width = 1920;
+		int32_t height = 1080;
+
+		if (nArgs > 14)
+		{
+			// 0 0 1920 1040
+			// 11 12 13 14
+			width = ::atoi((const char*)(WcharTochar(szArglist[13]).c_str()));
+			height = ::atoi((const char*)(WcharTochar(szArglist[14]).c_str()));
+			//NORMAL_EX_LOG("width  = %u, height = %u", width, height);
+			lpDevMode->dmPelsWidth = width;
+			lpDevMode->dmPelsHeight = height;
+		}
+
+	}
+	return ret;
+}
+void load_seecen()
+{
+	if (userdll32_ptr)
+	{
+		return;
+	}
+	userdll32_ptr = get_system_module("user32.dll");
+	if (!userdll32_ptr)
+	{
+		return;
+	}
+	void* EnumDisplaySettingsA_proc = GetProcAddress(userdll32_ptr, "EnumDisplaySettingsA");
+	void* EnumDisplaySettingsW_proc = GetProcAddress(userdll32_ptr, "EnumDisplaySettingsW");
+	{
+	//	SYSTEM_LOG("    input device  begin ... ");
+		DetourTransactionBegin();
+
+		if (EnumDisplaySettingsA_proc)
+		{
+			RealEnumDisplaySettingsA = (PFN_EnumDisplaySettingsA)EnumDisplaySettingsA_proc;
+			DetourAttach((PVOID*)&RealEnumDisplaySettingsA,
+				hook_EnumDisplaySettingsA);
+		}
+		if (EnumDisplaySettingsW_proc)
+		{
+			RealEnumDisplaySettingsW = (PFN_EnumDisplaySettingsW)EnumDisplaySettingsW_proc;
+			DetourAttach((PVOID*)&RealEnumDisplaySettingsW,
+				hook_EnumDisplaySettingsW);
+		} 
+		const LONG error = DetourTransactionCommit();
+		const bool success = error == NO_ERROR;
+	}
+}
 /// <summary>
 /// 动态库的入口
 /// </summary>
@@ -457,6 +560,9 @@ static DWORD WINAPI main_capture_thread(HANDLE thread_handle)
 /// <param name="reason"></param>
 /// <param name="unused1"></param>
 /// <returns></returns>
+/// 
+/// 
+/// 
  
 __declspec(dllexport)
 BOOL APIENTRY DllMain(HINSTANCE hinst, DWORD reason, LPVOID unused1)
@@ -465,12 +571,13 @@ BOOL APIENTRY DllMain(HINSTANCE hinst, DWORD reason, LPVOID unused1)
 	 
  
 	 
-	if (reason == DLL_PROCESS_ATTACH) {
+	if (reason == DLL_PROCESS_ATTACH) 
+	{
  
+		//load_seecen();
 		wchar_t name[MAX_PATH];
 		 
 		dll_inst = hinst;
-
 
 		HANDLE cur_thread;
 		bool success = DuplicateHandle(GetCurrentProcess(),
@@ -511,7 +618,7 @@ BOOL APIENTRY DllMain(HINSTANCE hinst, DWORD reason, LPVOID unused1)
 		 
 		if (capture_thread) {
 			stop_loop = true;
-			WaitForSingleObject(capture_thread, 300);
+			WaitForSingleObject(capture_thread, 200);
 			CloseHandle(capture_thread);
 			 
 		}
