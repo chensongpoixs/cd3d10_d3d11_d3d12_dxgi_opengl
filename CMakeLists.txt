@@ -52,6 +52,9 @@ file(GLOB libcross_platform_collection_render_source
   track_capture/*.h 
   track_capture/*.cpp 
   
+  audio_capture/*.cpp 
+  audio_capture/*.h 
+  
 	
 	
 ) 

@@ -102,6 +102,7 @@ void DesktopCaptureSource::OnFrame(const webrtc::VideoFrame& frame) {
 		// 很奇怪 为什么摄像头需要再同一个thread中调用
 		singnal_thread_->PostTask(RTC_FROM_HERE, [this, out](){
 			x264_encoder_->OnNewMediaFrame(out);
+		//	x264_encoder_->OnNewMediaFrame(out);
 		});
 		
 	}
