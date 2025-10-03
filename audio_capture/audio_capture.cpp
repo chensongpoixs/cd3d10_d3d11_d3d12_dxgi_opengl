@@ -217,7 +217,7 @@ namespace libcross_platform_collection_render
 		audio_frame->sample_rate_hz_ = samplesPerSec;
 		//audio_frame->packet_infos_
 		//audio_frame->packet_infos_
-		audio_frame->samples_per_channel_ = len;
+		audio_frame->samples_per_channel_ = nSamples;
 		memcpy(audio_frame->mutable_data(), audioSamples, len);
 		audio_frame->timestamp_ = rtc::SystemTimeMillis();
 		if (opus_encoder2_)
