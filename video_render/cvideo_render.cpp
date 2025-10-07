@@ -34,7 +34,10 @@ namespace libcross_platform_collection_render
 	}
 	cvideo_renderer::~cvideo_renderer()
 	{
-		rendered_track_->RemoveSink(this);
+		if (rendered_track_)
+		{
+			rendered_track_->RemoveSink(this);
+		}
 
 
 		RTC_LOG_F(LS_INFO) << " -->>";
@@ -42,7 +45,11 @@ namespace libcross_platform_collection_render
 	cvideo_renderer::cvideo_renderer(rtc::scoped_refptr<webrtc::VideoTrackInterface> track_to_render)
 		:rendered_track_(track_to_render)  
 	{
-		rendered_track_->AddOrUpdateSink(this, rtc::VideoSinkWants());
+		if (rendered_track_)
+		{
+			rendered_track_->AddOrUpdateSink(this, rtc::VideoSinkWants());
+		}
+		
 	}
 	cvideo_renderer* cvideo_renderer::Create(const void* hwnd,
 		size_t width,
