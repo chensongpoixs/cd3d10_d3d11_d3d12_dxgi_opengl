@@ -23,13 +23,17 @@
 namespace libcross_platform_collection_render
 {
 
-
+	namespace {
+		static const int32_t    kAudioBufferSize = 1024 * 1024 * 8;
+	}
 
 	AudioCapture::AudioCapture(rtc::Thread * work)
 		: work_thread_(work),
 		audio_device_(nullptr)
 		, task_queue_factory_(webrtc::CreateDefaultTaskQueueFactory())
 		, opus_encoder2_(nullptr)
+		, audio_buffer_(kAudioBufferSize)
+		, audio_buffer_size_(0)
 	{
 		// 在api_thread创建并初始化音频设备
 		work_thread_->PostTask(webrtc::ToQueuedTask([=]() {
@@ -144,6 +148,58 @@ namespace libcross_platform_collection_render
 		}));
 	}
 
+	void AudioCapture::StartPlayout(const std::string & device_name)
+	{
+		device_name_ = device_name;
+		RTC_LOG(LS_INFO) << "Audio StartPlayout Start call";
+		work_thread_->PostTask(webrtc::ToQueuedTask([=]() {
+			RTC_LOG(LS_INFO) << "Audio StartPlayout Start PostTask call";
+
+
+			do {
+
+				audio_device_->SetPlayoutDevice(webrtc::AudioDeviceModule::kDefaultDevice);
+				audio_device_->RegisterAudioCallback(this);
+				// 7. 初始化麦克风
+				if (audio_device_->InitPlayout() || !audio_device_->PlayoutIsInitialized()) {
+					RTC_LOG(LS_WARNING) << "Init Playout failed, device_name: " << device_name_;
+
+					break;
+				}
+
+				// 8. 启动麦克风采集
+				if (audio_device_->StartPlayout()) {
+					RTC_LOG(LS_WARNING) << "Start Playout failed, device_name: " << device_name_;
+
+					break;
+				}
+
+				has_start_ = true;
+
+			} while (0);
+
+
+
+		}));
+	}
+	void AudioCapture::StopPlayout()
+	{
+		RTC_LOG(LS_INFO) << "Audio Play out Stop call";
+		work_thread_->PostTask(webrtc::ToQueuedTask([=]() {
+			RTC_LOG(LS_INFO) << "AudioPlay out Stop PostTask";
+			if (!has_start_) {
+				return;
+			}
+
+			has_start_ = false;
+
+			// 停止录音
+			if (audio_device_->PlayoutIsInitialized()) {
+				audio_device_->StopPlayout();
+			}
+		}));
+	}
+
 	void AudioCapture::Destroy()
 	{
 		RTC_LOG(LS_INFO) << "AudioCapture Destroy call";
@@ -156,6 +212,19 @@ namespace libcross_platform_collection_render
 	void AudioCapture::SetAudioEncoder(libmedia_codec::OpusEncoder2 * encoder)
 	{
 		opus_encoder2_ = encoder;
+	}
+
+	void AudioCapture::AppAudioData(rtc::Buffer&& data)
+	{
+		work_thread_->PostTask(webrtc::ToQueuedTask([this, data_ = std::move(data)]() {
+			if (audio_buffer_.size() + data_.size() > kAudioBufferSize)
+			{
+				RTC_LOG(LS_WARNING) << " conume audio buffer size tai big  : " << audio_buffer_.size();
+				return;
+			}
+
+			audio_buffer_.AppendData(data_);
+		}));
 	}
 
 	int32_t AudioCapture::GetAudioDeviceCount()
@@ -227,9 +296,32 @@ namespace libcross_platform_collection_render
 		return 0;
 	}
 
-	int32_t AudioCapture::NeedMorePlayData(const size_t nSamples, const size_t nBytesPerSample, const size_t nChannels, const uint32_t samplesPerSec, void * audioSamples, size_t & nSamplesOut, int64_t * elapsed_time_ms, int64_t * ntp_time_ms)
+	int32_t AudioCapture::NeedMorePlayData(const size_t nSamples, 
+		const size_t nBytesPerSample, const size_t nChannels, 
+		const uint32_t samplesPerSec, void * audioSamples, 
+		size_t & nSamplesOut, int64_t * elapsed_time_ms, 
+		int64_t * ntp_time_ms)
 	{
-		return int32_t();
+		//一帧的音频数据的大小
+		const size_t bytes_to_read = nSamples * nBytesPerSample * nChannels;
+		if (audio_buffer_.size() > bytes_to_read)
+		{
+			//没有数据的时候没有输出
+			nSamplesOut = 0;
+			return 0;
+		}
+		memcpy(audioSamples, audio_buffer_.begin(), bytes_to_read);
+
+
+	//	memmove(audio_buffer_.begin(), audio_buffer_.begin() + bytes_to_read, audio_buffer_.size() - bytes_to_read);
+		//设置最新的buffer的大小
+		audio_buffer_.SetData(audio_buffer_.begin() + bytes_to_read, audio_buffer_.size() - bytes_to_read);
+
+		nSamplesOut = bytes_to_read / (nBytesPerSample * nChannels);
+
+
+
+		return 0;
 	}
 
 	void AudioCapture::PullRenderData(int bits_per_sample, int sample_rate, size_t number_of_channels, size_t number_of_frames, void * audio_data, int64_t * elapsed_time_ms, int64_t * ntp_time_ms)

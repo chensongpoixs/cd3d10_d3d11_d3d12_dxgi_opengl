@@ -45,13 +45,19 @@ namespace libcross_platform_collection_render {
 		AudioCapture(rtc::Thread* work);
 		~AudioCapture();
 	public:
-		void Start(const std::string & device_name)  ;
-		 
+		void Start(const std::string & device_name)  ; 
 		void Stop()  ;
+		
+		void StartPlayout(const std::string & device_name);
+		void StopPlayout();
+		
 		void Destroy()  ;
 
 
 		void SetAudioEncoder(libmedia_codec::OpusEncoder2* encoder);
+
+
+		void AppAudioData(rtc::Buffer&& data);
 	public:
 		int32_t  GetAudioDeviceCount();
 		int32_t  GetAudioDeviceInfo(int32_t index, std::string & audio_device, std::string& device_guid);
@@ -97,6 +103,10 @@ namespace libcross_platform_collection_render {
 		libmedia_codec::OpusEncoder2 *       opus_encoder2_;
 		uint32_t   timestamp_ =0 ;
 		std::string  device_name_;
+
+
+		rtc::Buffer                           audio_buffer_;
+		int32_t								  audio_buffer_size_;
 	};
 }
 
