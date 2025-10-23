@@ -37,9 +37,10 @@
 #include <api/task_queue/default_task_queue_factory.h>
 #include "libmedia_codec/audio_frame.h"
 #include "libmedia_codec/audio_codec/opus_encoder.h"
+#include <modules/audio_processing/include/audio_processing.h>
 namespace libcross_platform_collection_render {
 
-	class AudioCapture : public webrtc::AudioTransport
+	class AudioCapture : public webrtc::AudioTransport,   public   sigslot::has_slots<>
 	{
 	public:
 		AudioCapture(rtc::Thread* work);
@@ -52,12 +53,11 @@ namespace libcross_platform_collection_render {
 		void StopPlayout();
 		
 		void Destroy()  ;
-
-
-		void SetAudioEncoder(libmedia_codec::OpusEncoder2* encoder);
-
-
 		void AppAudioData(rtc::Buffer&& data);
+
+	public:
+
+		sigslot::signal1<std::shared_ptr<libmedia_codec::AudioFrame>  > SignalAudioCaptureFrame;
 	public:
 		int32_t  GetAudioDeviceCount();
 		int32_t  GetAudioDeviceInfo(int32_t index, std::string & audio_device, std::string& device_guid);
@@ -99,8 +99,7 @@ namespace libcross_platform_collection_render {
 		rtc::scoped_refptr<webrtc::AudioDeviceModule> audio_device_;
 		std::unique_ptr<webrtc::TaskQueueFactory> task_queue_factory_;
 		bool has_start_ = false;
-
-		libmedia_codec::OpusEncoder2 *       opus_encoder2_;
+		 
 		uint32_t   timestamp_ =0 ;
 		std::string  device_name_;
 
