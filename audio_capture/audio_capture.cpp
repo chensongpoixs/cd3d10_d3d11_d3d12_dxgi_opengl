@@ -20,18 +20,41 @@
 
 #include "libcross_platform_collection_render/audio_capture/audio_capture.h"
 #include <rtc_base/task_utils/to_queued_task.h>
+#include <api/audio/audio_frame.h>
+#include <common_audio/include/audio_util.h>
 namespace libcross_platform_collection_render
 {
 
 	namespace {
 		static const int32_t    kAudioBufferSize = 1024 * 1024 * 8;
+
+		 
+		 
+		void InitializeCaptureFrame(int input_sample_rate,// 原始采样率
+			int send_sample_rate_hz,// 最终发送的采样率
+			size_t input_num_channels,// 原始采样的声道数
+			size_t send_num_channels,// 最终发送的声道数
+			libmedia_codec::AudioFrame* audio_frame) {
+			RTC_DCHECK(audio_frame);
+			int min_processing_rate_hz = std::min(input_sample_rate, send_sample_rate_hz);
+			for (int native_rate_hz : webrtc::AudioProcessing::kNativeSampleRatesHz) {
+				audio_frame->sample_rate_hz_ = native_rate_hz;
+				// 在不丢失信息的情况下，尽可能用最小的采样率进行音频处理
+				if (audio_frame->sample_rate_hz_ >= min_processing_rate_hz) {
+					break;
+				}
+			}
+			audio_frame->num_channels_ = std::min(input_num_channels, send_num_channels);
+		}
+
+		 
 	}
 
 	AudioCapture::AudioCapture(rtc::Thread * work)
 		: work_thread_(work),
 		audio_device_(nullptr)
 		, task_queue_factory_(webrtc::CreateDefaultTaskQueueFactory())
-		, opus_encoder2_(nullptr)
+		//, opus_encoder2_(nullptr)
 		, audio_buffer_(kAudioBufferSize)
 		, audio_buffer_size_(0)
 	{
@@ -209,10 +232,10 @@ namespace libcross_platform_collection_render
 		}));
 	}
 
-	void AudioCapture::SetAudioEncoder(libmedia_codec::OpusEncoder2 * encoder)
-	{
-		opus_encoder2_ = encoder;
-	}
+	//void AudioCapture::SetAudioEncoder(libmedia_codec::OpusEncoder2 * encoder)
+	//{
+	//	opus_encoder2_ = encoder;
+	//}
 
 	void AudioCapture::AppAudioData(rtc::Buffer&& data)
 	{
@@ -256,7 +279,7 @@ namespace libcross_platform_collection_render
 		const size_t nBytesPerSample, // 每个样本的字节数
 		const size_t nChannels, 
 		const uint32_t samplesPerSec, 
-		const uint32_t totalDelayMS, // 参考信号和远端回声信号之间的延迟
+		const uint32_t audio_delay_milliseconds, // 参考信号和远端回声信号之间的延迟
 		const int32_t clockDrift, 
 		const uint32_t currentMicLevel, 
 		const bool keyPressed, 
@@ -286,13 +309,16 @@ namespace libcross_platform_collection_render
 		audio_frame->sample_rate_hz_ = samplesPerSec;
 		//audio_frame->packet_infos_
 		//audio_frame->packet_infos_
-		audio_frame->samples_per_channel_ = nSamples;
+		audio_frame->samples_per_channel_ = nBytesPerSample;
 		memcpy(audio_frame->mutable_data(), audioSamples, len);
-		audio_frame->timestamp_ = rtc::SystemTimeMillis();
-		if (opus_encoder2_)
-		{
-			opus_encoder2_->OnNewMediaFrame(audio_frame);
-		}
+		audio_frame->timestamp_ = timestamp_;// rtc::SystemTimeMillis();
+		audio_frame->audio_delay_milliseconds_ = audio_delay_milliseconds;
+		audio_frame->key_pressed_ = keyPressed;
+		SignalAudioCaptureFrame(audio_frame);
+		//if (opus_encoder2_)
+		//{
+		//	opus_encoder2_->OnNewMediaFrame(audio_frame);
+		//}
 		return 0;
 	}
 

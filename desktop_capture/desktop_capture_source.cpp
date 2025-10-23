@@ -48,8 +48,8 @@ void DesktopCaptureSource::UpdateVideoAdapter() {
 void DesktopCaptureSource::OnFrame(const webrtc::VideoFrame& frame) {
   
 
-	//RTC_LOG(LS_INFO) << "width :" << frame.width() << "height : " << frame.height();
-	 
+	RTC_LOG(LS_INFO) << "width :" << frame.width() << "height : " << frame.height();
+	//return;
 	//i420_buffer_->set_texture();
 	//libyuv::ConvertToI420(frame->data(), 0, i420_buffer_->MutableDataY(),
 	//	i420_buffer_->StrideY(), i420_buffer_->MutableDataU(),
@@ -88,7 +88,7 @@ void DesktopCaptureSource::OnFrame(const webrtc::VideoFrame& frame) {
 	//	libmedia_codec_i420_buffer_->StrideV(), 0, 0, width, height, width,
 	//	height, libyuv::kRotate0, libyuv::FOURCC_ARGB);
 	
-	if (x264_encoder_)
+	if (x264_encoder_ && !singnal_thread_->IsQuitting())
 	{
 		libmedia_codec::VideoFrame captureFrame =
 			libmedia_codec::VideoFrame::Builder()
