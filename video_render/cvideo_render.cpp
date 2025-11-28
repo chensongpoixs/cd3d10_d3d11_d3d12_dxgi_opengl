@@ -30,7 +30,14 @@ namespace libcross_platform_collection_render
 		size_t width,
 		size_t height,
 		webrtc::VideoTrackInterface* track_to_render) {
+			#ifdef _MSC_VER
 		return D3dRenderer::Create(hwnd, width, height, track_to_render);
+
+#elif defined(__GNUC__) ||defined(__APPLE__)
+
+			return nullptr;
+#endif 
+		
 	}
 	cvideo_renderer::~cvideo_renderer()
 	{

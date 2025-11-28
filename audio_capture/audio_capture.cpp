@@ -93,6 +93,7 @@ namespace libcross_platform_collection_render
 					 
 					break;
 				}
+				#ifdef _MSC_VER
 				WCHAR buffer[128] = { 0 };
 				auto bytetowchar = [&](const std::string &src) {
 					if (MultiByteToWideChar(CP_UTF8, 0, src.c_str(), src.size(), buffer,
@@ -102,6 +103,12 @@ namespace libcross_platform_collection_render
 							<< GetLastError();
 					}
 				};
+				#elif defined(__GNUC__) ||defined(__APPLE__)
+				#else 
+		// 其他不支持的编译器需要自己实现这个方法
+#error unexpected c complier (msc/gcc), Need to implement this method for demangle
+
+				#endif // 
 				// 4. 检查关联的mic_id是否能够在系统设备中找到
 				int device_index = -1;
 				for (int i = 0; i < total; ++i) {

@@ -9,7 +9,7 @@
  */
 #ifndef TEST_WIN_D3D_RENDERER_H_
 #define TEST_WIN_D3D_RENDERER_H_
-
+#ifdef _MSC_VER
 #include <Windows.h>
 #include <d3d9.h>
 #pragma comment(lib, "d3d9.lib")  // located in DirectX SDK
@@ -47,5 +47,7 @@ class D3dRenderer : public cvideo_renderer {
   rtc::scoped_refptr<IDirect3DVertexBuffer9> vertex_buffer_;
 };
 }  // namespace webrtc
+
+#endif // #ifdef _MSC_VER
 
 #endif  // WEBRTC_TEST_WIN_D3D_RENDERER_H_

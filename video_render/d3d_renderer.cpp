@@ -11,6 +11,10 @@
 
 #include "common_video/libyuv/include/webrtc_libyuv.h"
 #include "rtc_base/checks.h"
+
+
+#ifdef _MSC_VER
+
 namespace libcross_platform_collection_render {
 
 #define D3DFVF_CUSTOMVERTEX (D3DFVF_XYZ|D3DFVF_TEX1)
@@ -181,3 +185,5 @@ void D3dRenderer::OnFrame(const webrtc::VideoFrame& frame) {
   d3d_device_->Present(NULL, NULL, NULL, NULL);
 }
 }  // namespace webrtc
+
+#endif // #ifdef _MSC_VER

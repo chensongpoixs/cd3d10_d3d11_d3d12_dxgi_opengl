@@ -59,7 +59,14 @@ bool DesktopCapture::Init(size_t target_fps, size_t capture_screen_index)
 		webrtc::DesktopCaptureOptions::CreateDefault());*/
 	//桌面allow_directx_capturer_
 	webrtc::DesktopCaptureOptions options;
+  #ifdef _MSC_VER
 	options.set_allow_directx_capturer(true);
+  #elif defined(__GNUC__) ||defined(__APPLE__)
+  #else
+		// 其他不支持的编译器需要自己实现这个方法
+#error unexpected c complier (msc/gcc), Need to implement this method for demangle
+		 
+#endif
 	dc_ = webrtc::DesktopCapturer::CreateScreenCapturer(options);
 
   if (!dc_)
